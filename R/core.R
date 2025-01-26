@@ -3,6 +3,7 @@
 #' @import pROC
 #' @import evsiexval
 #' @import mc2d
+#' @import logitnorm
 
 #'@export
 logit <- function(x) {log(x/(1-x))}
@@ -12,20 +13,91 @@ expit <- function(x) {1/(1+exp(-x))}
 
 
 
+
+#'@export
+moments <- function(type, parms) {
+  # Check if the input values are valid
+  if(type=="norm")
+  {
+    return(c(m=parms[1], v=sqrt(parms[2])))
+  }
+  if(type=="beta")
+  {
+    a <- parms[1]; b <- parms[2]
+    return(c(m=a/(a+b), v=a*b/((a+b)^2)*(a+b+a)))
+  }
+  if(type=="logitnorm")
+  {
+    return(momentsLogitnorm(parms[[1]], parms[[2]]))
+  }
+  if(type=="probitnorm")
+  {
+    #TODO
+  }
+}
+
+
+
+
+
+#'@export
+inv_moments <- function(type, moments) {
+  # Check if the input values are valid
+  m <- moments[[1]]
+  v <- moments[[2]]
+  
+  if(type=="norm")
+  {
+    sd <- sqrt(v)
+    return(c(mean=m, sd=sd))
+  }
+  
+  
+  if(type=="beta")
+  {
+    if (m <= 0 || m >= 1) {
+      stop("Mean must be between 0 and 1 (exclusive).")
+    }
+    if (v <= 0) {
+      stop("Variance must be positive.")
+    }
+    
+    # Calculate alpha and beta
+    alpha <- m * ((m * (1 - m) / v) - 1)
+    beta <- (1 - m) * ((m * (1 - m) / v) - 1)
+    
+    # Return the alpha and beta as a named list
+    return(c(shape1=alpha, shape2=beta))
+  }
+}
+
 #'@export
 inv_mean_quantile <- function(type, m, q, p)
 {
   if(type=="logitnorm")
   {
-    res <- uniroot(function(x) {pbeta(q,x,x*(1-m)/m)-p}, interval=c(0.0001,10000))
-    out <- list(alpha=res$root, beta=res$root*(1-m)/m)
+    res <- logitnorm::twCoefLogitnormE(mean=m, quant=q, perc=p)
+    out <- c(mu=res[1], sigma=res[2])
   }
-  if(type=="beta") #TODO
+  if(type=="beta") 
   {
     res <- uniroot(function(x) {pbeta(q,x,x*(1-m)/m)-p}, interval=c(0.0001,10000))
-    out <- list(alpha=res$root, beta=res$root*(1-m)/m)
+    out <- c(alpha=res$root, beta=res$root*(1-m)/m)
   }
+  if(type=="probitnorm") #TODO
+  {
+    
+  }
+  if(type=="norm")
+  {
+    res <- uniroot(function(x) {pnorm(q,m,x)-p}, interval=c(0.0001,10))
+    out <- c(mean=m, sd=res$root)
+  }
+  
+  out
 }
+
+
 
 
 # #@export
@@ -150,57 +222,6 @@ calc_se_sp <- function(dist_type, dist_parms, cal_int, cal_slp, threshold, prev=
 
 
 
-#'@export
-moments <- function(type, parms) {
-  # Check if the input values are valid
-  if(type=="norm")
-  {
-    return(list(m=parms[1], v=sqrt(parms[2])))
-  }
-
-
-  if(type=="beta")
-  {
-    a <- parms[1]; b <- parms[2]
-    return(list(m=a/(a+b), v=a*b/((a+b)^2)*(a+b+a)))
-  }
-}
-
-
-
-
-
-#'@export
-inv_moments <- function(type, moments) {
-  # Check if the input values are valid
-  m <- moments[[1]]
-  v <- moments[[2]]
-
-  if(type=="norm")
-  {
-    sd <- sqrt(v)
-    return(list(mean=m, sd=sd))
-  }
-
-
-  if(type=="beta")
-  {
-    if (m <= 0 || m >= 1) {
-      stop("Mean must be between 0 and 1 (exclusive).")
-    }
-    if (v <= 0) {
-      stop("Variance must be positive.")
-    }
-
-    # Calculate alpha and beta
-    alpha <- m * ((m * (1 - m) / v) - 1)
-    beta <- (1 - m) * ((m * (1 - m) / v) - 1)
-
-    # Return the alpha and beta as a named list
-    return(list(shape1=alpha, shape2=beta))
-  }
-}
-
 
 
 
@@ -265,7 +286,7 @@ calc_vars <- function(N, parms)
   prev <- parms$prev
   C <- parms$cstat
   dist_type <- parms$dist_type
-  dist_parms <- c(parms$dist_parm1, parms$dist_parm2)
+  dist_parms <- parms$dist_parms
   cal_int <- parms$cal_int
   cal_slp <- parms$cal_slp
 
@@ -360,8 +381,7 @@ calc_ciw_2s <- function(N, parms)
                                         cal_int=new_parms$cal_int,
                                         cal_slp=new_parms$cal_slp,
                                         dist_type="logitnorm",
-                                        dist_parm1=dist_parms[1],
-                                        dist_parm2=dist_parms[2]
+                                        dist_parms=dist_parms
                                         )
                         )
 
@@ -519,14 +539,17 @@ rbnorm <- function(n, mu1, mu2, var1, var2, cov) {
 
 
 
-
+# Creates a clean list including type, parms, moments
 process_evidence_element <- function(element)
 {
+  e <- list()
+  e$type <- element$type
+  
   if(any(nchar(names(element))==0)) {stop("Unnamed objects found in ...")}
   ##Should have any of the following members: (mu, var), (mu, sd), (alpha, beta)
   nms <- names(element)
-  possible_args <- list(c("mu","var"),c("m","v"), c("mu","sd"), c("alpha","beta"))
-  renamed_args <-  list(c("m","v"),   c("m","v"), c("m","s"),   c("shape1","shape2"))
+  possible_args <- list(c("mean","var"), c("m","v"), c("mean","sd"), c("alpha","beta"), c("mean","cih"))
+  renamed_args <-  list(c("m","v"),   c("m","v"), c("m","s"),   c("shape1","shape2"), c("m","cih"))
   parms <- c()
   for(i in 1:length(possible_args))
   {
@@ -543,36 +566,41 @@ process_evidence_element <- function(element)
   if(names(parms)[1]=='m')
   {
     m <- parms[[1]]
-    v <- parms[[2]]
-    if(names(parms)[2]=="s") v <- v^2
-    element$moments <- list(m=m,v=v)
-    element$parms <- inv_moments(element$type, list(m,v))
+    if(names(parms)[2]=="cih")
+    {
+      e$parms <- inv_mean_quantile(element$type, m, q=parms[[2]], p=0.975)
+      e$moments <- c(m=m, v=0)
+      e$moments[2] <- moments(element$type, e$parms)[[2]]
+    }
+    else
+    {
+      v <- parms[[2]]
+      if(names(parms)[2]=="s") v <- v^2
+      e$moments <- c(m=m,v=v)
+      e$parms <- inv_moments(element$type, list(m,v))
+    }
   }
   else
   {
-    element$parms <- parms
-    element$moments <- moments(element$type, parms)
+    e$parms <- parms
+    e$moments <- moments(element$type, parms)
   }
 
-  element
+  e
 }
 
 
 #' @export
-BayesCPM <- function(N, evidence, dist_type="logitnorm", method="sample",  target_ciw, rules=c("EV", assurance=0.9), n_sim, impute_cor=FALSE, threshold=NULL)
+process_evidence <- function(evidence)
 {
-  out <- list(N=N)
-
-  ##Step 1: Process evidence
-  message("Step 1: Processing evidence...")
   if(is.null(evidence$prev)) {stop("evidence object must have a prev (prevalence) member")}
   if(is.null(evidence$prev$type)) {evidence$prev$type<-"beta"; message("Assuming prev has a beta distribution") }
   evidence$prev <- process_evidence_element(evidence$prev)
-
+  
   if(is.null(evidence$cstat)) {stop("evidence object must have a cstat (c-statistic) member")}
   if(is.null(evidence$cstat$type)) {evidence$cstat$type<-"beta"; message("Assuming cstat has a beta distribution") }
   evidence$cstat <- process_evidence_element(evidence$cstat)
-
+  
   nms <- names(evidence)
   possible_args <- list(c("cal_mean","cal_slp"), c("cal_oe","cal_slp"), c("cal_int","cal_slp"))
   renamed_args <-  list(c("cal_mean","cal_slp"), c("cal_oe","cal_slp"), c("cal_int","cal_slp"))
@@ -588,12 +616,12 @@ BayesCPM <- function(N, evidence, dist_type="logitnorm", method="sample",  targe
     }
   }
   if(length(cal_parms)==0) stop("No valid parameter specification for calibration")
-
+  
   cal_mean <- match(c("cal_mean"),names(cal_parms))
   cal_int <- match(c("cal_int"),names(cal_parms))
   cal_slp <- match(c("cal_slp"),names(cal_parms))
   cal_oe <- match(c("cal_oe"),names(cal_parms))
-
+  
   if(!is.na(cal_mean))
   {
     if(is.na(cal_parms[[cal_mean]]$type)) { cal_parms[[cal_mean]]$type<-"normal"; message("Assuming normal distirbution for calibration mean")}
@@ -614,34 +642,68 @@ BayesCPM <- function(N, evidence, dist_type="logitnorm", method="sample",  targe
     if(is.na(cal_parms[[cal_oe]]$type)) { cal_parms[[cal_oe]]$type<-"normal"; message("Assuming normal distirbution for calibration mean")}
     evidence$cal_oe <- process_evidence_element(cal_parms[[cal_oe]])
   }
+  
+  evidence
+}
 
+
+
+#' @export
+BayesCPM <- function(N, evidence, dist_type="logitnorm", method="sample", target_ciws, rules=list(fciw=FALSE, eciw=TRUE, qciw=0.9, nb_voi=TRUE, nb_assurance=0.9), n_sim, impute_cor=FALSE, threshold=NULL, ex_args=NULL)
+{
+  out <- list(N=N)
+  
+  if(is.function(ex_args$f_progress))
+  {
+    f_progress <- ex_args$f_progress
+  }else
+  {
+    f_progress <- base::message
+  }
+  
+  ##Step 1: Process evidence
+  f_progress("Step 1: Processing evidence...")
+  evidence <- process_evidence(evidence)
+  out$evidence <- evidence
+  
+  ##Generate base parms
+  base <- list()
+  base$dist_type <- dist_type
+  base$prev <- evidence$prev$moments[[1]]
+  base$cstat <- evidence$cstat$moments[[1]]
+  base$dist_parms <- mcmapper::mcmap(c(base$prev, base$cstat), type=dist_type)$valu
+  base$cal_slp <- evidence$cal_slp$moments[[1]]
+    
+  #Cal intercept is not provided. Need to derive it for base params for correlation induction
+  if(is.na(match("cal_int", names(evidence))))
+  {
+    base$cal_int <- infer_cal_int_from_mean(base$dist_type, base$dist_parms, cal_mean=evidence$cal_mean$moments[[1]], cal_slp=base$cal_slp, prev=base$prev)
+  }
+  else
+  {
+    base$cal_int <- evidence$cal_int$moments[[1]]
+  }
+  
+    
 
   #Step 2: generate sample of marginals
-  message("Step 2: Generating Monte Carlo sample...")
+  f_progress("Step 2: Generating Monte Carlo sample...")
   sample <- NULL
   for(element in evidence)
   {
-    sample <- cbind(sample, do.call(paste0("r",element$type), args=c(n=n_sim,element$parms)))
+    sample <- cbind(sample, do.call(paste0("r",element$type), args=as.list(c(n=n_sim,element$parms))))
   }
   colnames(sample) <- names(evidence)
   #TODO: replace bad c-statistic values
 
-  base_dist_parms <- mcmapper::mcmap(c(evidence$prev$moments[[1]], evidence$cstat$moments[[1]]), type=dist_type)$valu
-  #Cal intercept is not provided. Need to derive it for base params for correlation induction
-  if(is.na(match("cal_int", names(evidence))))
-  {
-    base_cal_int <- infer_cal_int_from_mean(dist_type, base_dist_parms, cal_mean=evidence$cal_mean$moments[[1]], cal_slp=evidence$cal_slp$moments[[1]], prev=evidence$prev$moments[[1]])
-  }
-
-
-
+  
   #Step 3: induce correlation (if asked)
-  message("Step 3: Imputing correlation...")
+  f_progress("Step 3: Imputing correlation...")
   if(impute_cor)
   {
     eff_n <- round(evidence$prev$moments[[1]]*(1-evidence$prev$moments[[1]])/evidence$prev$moments[[2]],0)
-    message("Based on effective sample size:", eff_n)
-    base_cor <- infer_correlation(dist_type, base_dist_parms, base_cal_int, evidence$cal_slp$moments[[1]], eff_n, 1000)
+    f_progress("Based on effective sample size:", eff_n)
+    base_cor <- infer_correlation(base$dist_type, base$dist_parms, base$cal_int, base$cal_slp, eff_n, 1000)
     good_rows <- match(colnames(sample), colnames(base_cor))
     base_cor <- base_cor[good_rows,good_rows]
     sample <- mc2d::cornode(sample, target=base_cor)
@@ -649,7 +711,7 @@ BayesCPM <- function(N, evidence, dist_type="logitnorm", method="sample",  targe
 
 
   #Step 4: if intercept is missing, impute it for the whole sample
-  message("Step 4: Infering calibration intercept...")
+  f_progress("Step 4: Infering calibration intercept...")
   sample <- as.data.frame(sample)
   sample$dist_type <- dist_type
   sample$dist_parm1 <- 0
@@ -669,7 +731,7 @@ BayesCPM <- function(N, evidence, dist_type="logitnorm", method="sample",  targe
       sample$dist_parm1[i] <- parms[1]
       sample$dist_parm2[i] <- parms[2]
 
-      cal_int <- infer_cal_int_from_mean(dist_type=dist_type, dist_parms=parms,   cal_mean=cal_mean, cal_slp=cal_slp, prev=prev)
+      cal_int <- infer_cal_int_from_mean(dist_type=dist_type, dist_parms=parms, cal_mean=cal_mean, cal_slp=cal_slp, prev=prev)
 
       sample[i,'cal_int'] <- cal_int
     }
@@ -677,17 +739,39 @@ BayesCPM <- function(N, evidence, dist_type="logitnorm", method="sample",  targe
 
 
   # Step 5: Bayesian Riley
-  message("Step 5: Computing CI widths...")
+  f_progress("Step 5: Computing CI widths...")
+  nms <- names(target_ciws)
+  
+  if(!is.na(match("fciw",names(rules)))) #Frequentist CIWs
+  {
+    fv <- calc_vars(N, parms=base)
+  }
+  
   ciws <- calc_ciw_mc(N, sample, method=method)
   out$ciws <- ciws
-
-  for(i in 1:length(target_ciw))
+  
+  
+  for(i in 1:length(target_ciws))
   {
-    ciw <- target_ciw[[i]]
-    nm <- names(target_ciw)[i]
+    ciw <- target_ciws[[i]]
+    nm <- nms[i]
 
-    out$mean_ciw[[nm]] <- colMeans(ciws[[nm]])
-    out$assurance[[nm]] <- colMeans(ciws[[nm]]<ciw)
+    if(!is.na(match("fciw",names(rules)))) 
+    {
+      out$fciw[[nm]] <- sqrt(fv[[nm]])*2*qnorm(0.975)
+    }
+    if(!is.na(match("eciw",names(rules))))
+    {
+      out$eciw[[nm]] <- colMeans(ciws[[nm]])
+    }
+    if(!is.na(match("qciw",names(rules))))
+    {
+      out$qciw[[nm]] <- apply(ciws[[nm]],2,FUN=quantile, rules$qciw)
+    }
+    if(!is.na(match("assurance",names(rules))))
+    {
+      out$assurance[[nm]] <- colMeans(ciws[[nm]]<ciw)
+    }
   }
 
 
@@ -695,7 +779,7 @@ BayesCPM <- function(N, evidence, dist_type="logitnorm", method="sample",  targe
 
 
   # Step 6: Calculate se and sp
-  message("Step 6: Computing se/sp...")
+  f_progress("Step 6: Computing se/sp...")
   sample$sp <- sample$se <- NA
   for(i in 1:nrow(sample))
   {
@@ -711,14 +795,25 @@ BayesCPM <- function(N, evidence, dist_type="logitnorm", method="sample",  targe
 
 
   #Step 7: VoI
-  message("Step 7: VoI and NB assuraance...")
-  require(evsiexval)
-  res <- evsiexval::EVSI_gf(sample[,c('prev','se','sp')], future_sample_sizes=N,  ignore_prior=TRUE, z=threshold)
-
-  out <- c(out, res)
-
+  f_progress("Step 7: VoI and NB assuraance...")
+  b_voi <- !is.na(match("nb_voi",names(rules)))
+  b_assurance <- !is.na(match("nb_assurance",names(rules)))
+  if(b_voi | b_assurance)
+  {
+    require(evsiexval)
+    res <- evsiexval::EVSI_gf(sample[,c('prev','se','sp')], future_sample_sizes=N,  ignore_prior=TRUE, z=threshold)
+    if(b_voi)
+    {
+      out$EVPI <- res$EVPI
+      out$EVSI <- res$EVSI
+    }
+    if(b_assurance)
+    {
+      out$nb_assurance <- res$EVSIp
+    }
+  }
+  
   out$sample <- sample
-
   out
 }
 
