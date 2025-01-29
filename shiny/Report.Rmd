@@ -9,7 +9,18 @@ params:
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
+
+library(ggplot2)
+library(reshape2)
+
+my_format <- function(x)
+{
+  round(x,3)
+}
+
+
 ```
+
 
 ```{r, echo=FALSE}
 if(is.null(params$data) | length(params$data)==0)
@@ -18,13 +29,133 @@ if(is.null(params$data) | length(params$data)==0)
   knit_exit()
 }else
 {
-  rersults <- params$data
-  params$data
+  results <- params$data$results
+  args <- params$data$args
 }
 ```
 
 
 
-```{r cars, echo=FALSE}
-plot(rersults$N, rersults$eciw$cstat, type='l')
+
+## CI widths
+```{r, echo=FALSE, results='asis'}
+for(target in names(args$target_ciws))
+{
+  tbl <- list()
+  nms <- c()
+  plot_data <- data.frame()
+  if(isTRUE(args$rules$fciw))
+  {
+    tbl <- rbind(tbl, my_format(results$fciw[[target]]))
+    plot_data <- rbind(plot_data, results$fciw[[target]])
+    nms <- c(nms,"Point estimate (conventional)")
+  }
+  if(isTRUE(args$rules$eciw))
+  {
+    tbl <- rbind(tbl, my_format(results$eciw[[target]]))
+    plot_data <- rbind(plot_data, results$eciw[[target]])
+    nms <- c(nms,"Expected value")
+  }
+  if(!is.null(args$rules$qciw))
+  {
+    tbl <- rbind(tbl, my_format(results$qciw[[target]]))
+    plot_data <- rbind(plot_data, results$qciw[[target]])
+    nms <- c(nms,paste0("Quantile value (q=",args$rules$qciw,")"))
+  }
+
+  rownames(tbl) <- nms
+  colnames(tbl) <- paste0("N=",args$N)
+  
+  print(kable(tbl, caption=target))
+  cat("\n")
+  
+  # Ensure plot_data is a data frame for ggplot
+  plot_data_df <- as.data.frame(t(plot_data))
+  plot_data_df$N <- args$N
+  
+  # Reshape the data into long format for ggplot
+  plot_data_long <- reshape2::melt(plot_data_df, id.vars = "N", variable.name = "Line", value.name = "Value")
+  
+  # Create the plot
+  p <- ggplot(plot_data_long, aes(x = N, y = Value, color = Line)) +
+    geom_line() +  # Plot all lines
+    geom_hline(yintercept = args$target_ciws$cstat, color = "red", linetype = "solid") +  # Add the horizontal red line
+    labs(x = "Sample size", y = target) +  # Add axis labels
+    theme_minimal()  # Use a minimal theme
+  
+  # Print the plot
+   print(p)
+
+  
+  # if(nrow(plot_data)>0)
+  # {
+  #   ylim <-max(plot_data) 
+  #   plot(args$N, plot_data[1,], ylim=c(0, ylim), type='l', xlab="Sample size", ylab=target)
+  # }
+  # if(nrow(plot_data)>1)
+  # {
+  #   for(i in 2:nrow(plot_data))
+  #   {
+  #     lines(args$N, plot_data[i,])
+  #   }
+  # }
+  # lines(c(min(args$N), max(args$N)), c(args$target_ciws$cstat,args$target_ciws$cstat), col='red')
+}
 ```
+
+
+## VoI
+
+```{r, echo=FALSE, results='asis'}
+
+print(results$nb$evpi)
+
+tbl <- list()
+nms <- c()
+if(isTRUE(args$rules$nb_voi))
+{
+  tbl <- rbind(tbl, my_format(results$nb$evsi))
+  nms <- c(nms,"EVSI")
+}
+if(isTRUE(args$rules$nb_assurance))
+{
+  tbl <- rbind(tbl, my_format(results$nb$assurance))
+  nms <- c(nms,"Assurance")
+}
+
+rownames(tbl) <- nms
+colnames(tbl) <- paste0("N=",args$N)
+
+print(kable(tbl))
+cat("\n")
+
+library(ggplot2)
+
+# Create a data frame for ggplot
+plot_data <- data.frame(
+  N = args$N,  # Sample sizes
+  EVSI = results$nb$evsi,  # EVSI values
+  EVPI = rep(results$nb$evpi, length(args$N)),  # Repeated EVPI values
+  Assurance = results$nb$assurance,
+  Rule = rep(args$rules$nb_assurance, length(args$N))
+)
+
+# Create the plot
+ggplot(plot_data, aes(x = N)) +
+  geom_line(aes(y = EVSI), color = "black") +  # Plot EVSI as a black line
+  geom_line(aes(y = EVPI), color = "red") +   # Plot EVPI as a red line
+  labs(x = "Sample size", y = "VoI") +        # Add axis labels
+  theme_minimal()                             # Use a minimal theme
+
+
+ ggplot(plot_data, aes(x = N)) +
+     geom_line(aes(y = Assurance), color = "black") +  # Plot Assurance as a black line
+     geom_line(aes(y = Rule), color = "red") +         # Plot Rule as a red line
+     labs(x = "Sample size", y = "VoI") +             # Add axis labels
+     ylim(0, max(results$nb$assurance, args$rules$nb_assurance)) +  # Set y-axis limits
+     theme_minimal()      
+
+```
+
+
+

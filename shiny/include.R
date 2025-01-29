@@ -13,8 +13,10 @@ choices <- list(evidence_prev_input_type=c(  pe_cih="Point estimate and upper 95
                                           cal_int="Calibration intercept"),
                 evidence_cal_other_input_type=c(pe_cih="Point estimate and upper 95%CI bound", 
                                                 m_sd="Mean and SD",
-                                                parms="Distribution parameters")
-)
+                                                parms="Distribution parameters"),
+                method_type=c(sample="Simulate validation data", 
+                              "2s"="Two-level approximationn")
+            )
 
 
 
@@ -94,7 +96,7 @@ collect_evidence <- function(input)
   }
   if(evidence_cal_other_input_type=="m_sd")
   {
-    evidence[[cal_other_name]]<-c(evidence[[cal_other_name]], mean=p1, sd=p2^2)
+    evidence[[cal_other_name]]<-c(evidence[[cal_other_name]], mean=p1, sd=p2)
   }
   if(evidence_cal_other_input_type=="parms")
   {
@@ -153,7 +155,7 @@ collect_rules <- function(input)
   }
   if(input$b_nb_voi)
   {
-    rules$voi <- TRUE
+    rules$nb_voi <- TRUE
   }
   if(input$b_nb_assurance)
   {
@@ -172,11 +174,11 @@ gen_args <- function(input)
   
   out$dist_type <- input$dist_type
   
-  out$impute_cor <- input$impute_cor
+  out$impute_cor <- input$b_impute_cor
   
   out$n_sim <- input$n_sim
   
-  out$method=input$method
+  out$method=names(choices$method_type)[match(input$method,choices$method_type)]
   
   out$evidence <- collect_evidence(input)
   
@@ -186,7 +188,7 @@ gen_args <- function(input)
   
   if(!is.null(input$threshold))
   {
-    out$threshold <- threshold
+    out$threshold <- input$threshold
   }
   
   out
