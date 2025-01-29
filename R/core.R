@@ -4,13 +4,15 @@
 #' @import evsiexval
 #' @import mc2d
 #' @import logitnorm
+#' @import cobs
+#' @import quantreg
+
+#' @importFrom stats binomial coef cor dbeta glm integrate optim pbeta pnorm predict qnorm quantile rbeta rbinom rnorm t.test uniroot
 
 
 
-#'@export
 logit <- function(x) {log(x/(1-x))}
 
-#'@export
 expit <- function(x) {1/(1+exp(-x))}
 
 

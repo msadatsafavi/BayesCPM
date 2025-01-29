@@ -2,3 +2,4 @@
 ^.*\.Rproj$
 ^analysis$
 ^/analysis$
+^shiny$
