@@ -175,6 +175,7 @@ ui <- fluidPage(
       ),
       tabPanel("Report",
                actionButton("btn_gen_report", "Generate report"),
+               actionButton("btn_show_all", "Show results"),
                uiOutput("report1")
       )
     )
@@ -257,9 +258,12 @@ server <- function(input, output)
   observeEvent(input$btn_gen_report, {
     #rmarkdown::render(input="Report.rmd", params=list(data=global$results), clean=T, runtime="shiny")
     #output$report1 <- renderUI(includeHTML("Report.html"))
-    .GlobalEnv$params$data <- global
     rmarkdown::render(input="Report.rmd", params=list(data=global), clean=T)
     output$report1 <- renderUI(tags$iframe(src=base64enc::dataURI(file="Report.html", mime="text/html"), style='width:80vw;height:80vh;'))
+  })
+  
+  observeEvent(input$btn_show_all, {
+    output$report1 <- renderUI(pre(paste(deparse(global),collapse = "\n")))
   })
   
 }
