@@ -5,6 +5,8 @@
 #' @import mc2d
 #' @import logitnorm
 
+
+
 #'@export
 logit <- function(x) {log(x/(1-x))}
 

@@ -15,7 +15,7 @@ choices <- list(evidence_prev_input_type=c(  pe_cih="Point estimate and upper 95
                                                 m_sd="Mean and SD",
                                                 parms="Distribution parameters"),
                 method_type=c(sample="Simulate validation data", 
-                              "2s"="Two-level approximationn")
+                              "2s"="Two-level SE equations")
             )
 
 

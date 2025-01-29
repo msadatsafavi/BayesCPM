@@ -71,7 +71,7 @@ ui <- fluidPage(
               numericInput("evidence_cstat_input_parm2","Parm 2",value=0.0062,min=0,max=1,width="75px")))
         ),
         
-        sidebarPanel("Evidence on calibration",
+        sidebarPanel("Evidence on calibration slope",
           selectInput("evidence_cal_slp_dist_type", "Distribution type", choices=c("norm")),
           selectInput("evidence_cal_slp_input_type", "How do you want to parameterize", choices=unname(choices$evidence_cal_slp_input_type), selected=unname(choices$evidence_cal_slp_input_type)[2] 
                          ),
@@ -92,7 +92,7 @@ ui <- fluidPage(
                      numericInput("evidence_cal_other_input_parm2","Parm 2",value=0.1245,min=0,max=1,width="75px")))
           ),
            
-        ), 
+        ), sidebarPanel(numericInput("xxx", "xxx", value=1)),
         actionButton("btn_test_evidence", label="Test evidence"), uiOutput("test_evidence_results")
       ),
       tabPanel("Targets",
@@ -230,7 +230,7 @@ server <- function(input, output)
      
      global$results <<- res
      
-     output$console <- renderUI(HTML(paste("Run complete. Console text:", paste(console, collapse = ""))))
+     output$console <- renderUI(HTML(paste("Run complete. Console text:", paste(console, collapse = "\n"))))
      
      .GlobalEnv$output <- global #For debugging
      
