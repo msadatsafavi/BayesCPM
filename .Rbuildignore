@@ -1,2 +1,3 @@
-^voiss\.Rproj$
 ^\.Rproj\.user$
+^\analysis$
+^.*\.Rproj$
