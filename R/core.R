@@ -1,7 +1,6 @@
 #' @import fastLogisticRegressionWrap
 #' @import mcmapper
 #' @import pROC
-# #' @import evsiexval
 #' @import mc2d
 #' @import logitnorm
 #' @import cobs
@@ -888,7 +887,8 @@ BayesCPM <- function(N, evidence, dist_type="logitnorm", method="sample", target
     evpi <- mean(maxnbs)-maxenb
     assurance0 <- mean(apply(tnbs, 1, which.max)==which.max(colMeans(tnbs)))
     time <- Sys.time()
-    for(I in 1:n_sim)
+    n_rep <- 1
+    for(I in 1:n_rep)
     {
       for(i in 1:length(N))
       {
@@ -910,12 +910,12 @@ BayesCPM <- function(N, evidence, dist_type="logitnorm", method="sample", target
     if(b_voi)
     {
       out$nb$evpi <- evpi #res$EVPI
-      out$nb$evsi <- evsi/n_sim #res$EVSI
+      out$nb$evsi <- evsi/n_rep #res$EVSI
     }
     if(b_assurance)
     {
       out$nb$assurance0 <- assurance0
-      out$nb$assurance <- assurance/n_sim #res$EVSIp
+      out$nb$assurance <- assurance/n_rep #res$EVSIp
     }
   }
   

@@ -9,7 +9,6 @@
 
 library(shiny)
 library(shinyjs)
-library(evsiexval)
 library(mcmapper)
 library(bayescpm)
 library(knitr)
