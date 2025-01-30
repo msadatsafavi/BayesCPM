@@ -50,16 +50,16 @@ ui <- fluidPage(
         hr(),
         
         sidebarPanel("Evidence on outcome prevalence",
-           selectInput("evidence_prev_dist_type", "Distribution type", choices=c("logitnorm", "beta", "probitnorm"), selected="beta"),
-           selectInput("evidence_prev_input_type", "How do you want to parameterize", choices=unname(choices$evidence_prev_input_type), selected="Mean and SD"),
-           
-           fluidRow(
-              column(4,
-                numericInput("evidence_prev_input_parm1","Parm 1",value=0.427967,min=0,max=1,width="75px")),
-              column(4,
-                numericInput("evidence_prev_input_parm2","Parm 2",value=0.0295,min=0,max=1,width="75px")))
-           ),
-        
+             selectInput("evidence_prev_dist_type", "Distribution type", choices=c("logitnorm", "beta", "probitnorm"), selected="beta"),
+             selectInput("evidence_prev_input_type", "How do you want to parameterize", choices=unname(choices$evidence_prev_input_type), selected="Mean and SD"),
+             
+             fluidRow(
+                column(4,
+                  numericInput("evidence_prev_input_parm1","Parm 1",value=0.427967,min=0,max=1,width="75px")),
+                column(4,
+                  numericInput("evidence_prev_input_parm2","Parm 2",value=0.0295,min=0,max=1,width="75px")))
+          
+        ),
         sidebarPanel("Evidence on c-statistic",
           selectInput("evidence_cstat_dist_type", "Distribution type", choices=c("logitnorm", "beta", "probitnorm"), selected="beta"),
           selectInput("evidence_cstat_input_type", "How do you want to parameterize", choices=unname(choices$evidence_cstat_input_type), selected=unname(choices$evidence_cstat_input_type)[2] ),
@@ -91,7 +91,11 @@ ui <- fluidPage(
                      numericInput("evidence_cal_other_input_parm2","Parm 2",value=0.1245,min=0,max=1,width="75px")))
           ),
            
-        ), sidebarPanel(numericInput("xxx", "xxx", value=1)),
+        ), 
+        sidebarPanel(
+          checkboxInput("b_impute_cor","Impute correlation", value=1),
+          selectInput("dist_type", "Distribution of calibrated risks", choices=c("logitnorm","beta","probitnorm")),
+        ),
         actionButton("btn_test_evidence", label="Test evidence"), uiOutput("test_evidence_results")
       ),
       tabPanel("Targets",
@@ -160,17 +164,15 @@ ui <- fluidPage(
       tabPanel("Setup & run",
         sidebarPanel(
           textAreaInput("N", "Please enter sample sizes of interest (comma separated)","250,500,1000,2000,4000,8000"),
-          selectInput("dist_type", "Distribution of calibrated risks", choices=c("logitnorm","beta","probitnorm")),
           numericInput("n_sim", "Monte Carlo sample size", min=100, max=10^6, value=1000),
           numericInput("seed", "Random number seed (optional)", value = NULL, width="50px"),
-          checkboxInput("b_impute_cor","Impute correlation", value=1),
           selectInput("method","Computation method", choices = unname(choices$method_type))
         ),
         actionButton("btn_run", "Run"), 
-        actionButton("btn_clear_console", "Clear output"),
         actionButton("btn_show_args", "Show args"),
+        actionButton("btn_clear_console", "Clear output"),
         pre(uiOutput("console")), #getwd(), paste(dir(getwd()),collapse=","),
-        p("For any non-trivial computations, please use the R package or the local version of this app on your computer")
+        p("For long computations, please use the R package or the local version of this app on your computer")
       ),
       tabPanel("Report",
                actionButton("btn_gen_report", "Generate report"),
@@ -229,7 +231,7 @@ server <- function(input, output)
      
      global$results <<- res
      
-     output$console <- renderUI(HTML(paste("Run complete. Console text:", paste(console, collapse = "\n"))))
+     output$console <- renderUI(HTML(paste("Run complete. Check here for any error messages and then proceed to generate the report on the next panel. \n", paste(console, collapse = "\n"))))
      
      .GlobalEnv$output <- global #For debugging
      

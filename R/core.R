@@ -886,7 +886,6 @@ BayesCPM <- function(N, evidence, dist_type="logitnorm", method="sample", target
     evsi <- assurance <- rep(0, length(N))
     evpi <- mean(maxnbs)-maxenb
     assurance0 <- mean(apply(tnbs, 1, which.max)==which.max(colMeans(tnbs)))
-    time <- Sys.time()
     n_rep <- 1
     for(I in 1:n_rep)
     {
@@ -906,7 +905,6 @@ BayesCPM <- function(N, evidence, dist_type="logitnorm", method="sample", target
         assurance[i] <- assurance[i]+mean(winnertnbs==maxnbs)
       }
     }
-    message(Sys.time()-time)
     if(b_voi)
     {
       out$nb$evpi <- evpi #res$EVPI
