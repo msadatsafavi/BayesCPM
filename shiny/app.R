@@ -169,7 +169,7 @@ ui <- fluidPage(
         actionButton("btn_run", "Run"), 
         actionButton("btn_clear_console", "Clear output"),
         actionButton("btn_show_args", "Show args"),
-        pre(uiOutput("console")),
+        pre(uiOutput("console")), #getwd(), paste(dir(getwd()),collapse=","),
         p("For any non-trivial computations, please use the R package or the local version of this app on your computer")
       ),
       tabPanel("Report",
@@ -257,8 +257,9 @@ server <- function(input, output)
   observeEvent(input$btn_gen_report, {
     #rmarkdown::render(input="Report.rmd", params=list(data=global$results), clean=T, runtime="shiny")
     #output$report1 <- renderUI(includeHTML("Report.html"))
-    rmarkdown::render(input="Report.rmd", params=list(data=global), clean=T)
-    output$report1 <- renderUI(tags$iframe(src=base64enc::dataURI(file="Report.html", mime="text/html"), style='width:80vw;height:80vh;'))
+    fl <- paste0(tempdir(),"/report.html")
+    rmarkdown::render(input="Report.Rmd", output_file=fl, params=list(data=global), clean=T)
+    output$report1 <- renderUI(tags$iframe(src=base64enc::dataURI(file=fl, mime="text/html"), style='width:80vw;height:80vh;'))
   })
   
   observeEvent(input$btn_show_all, {
