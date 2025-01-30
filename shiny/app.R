@@ -111,7 +111,7 @@ ui <- fluidPage(
                     condition = "input.b_stats==1",
                     checkboxInput("b_fciw","Conventional (frequentist) CI width", value=TRUE),
                     checkboxInput("b_eciw","Expected CI width", value=TRUE),
-                    checkboxInput("b_qciw","Quantile of CI width"),
+                    checkboxInput("b_qciw","Quantile of CI width", value = TRUE),
                     conditionalPanel(
                      condition = "input.b_qciw==1",
                      sliderInput("qciw", "Quantile (assurance) value", 0.0, 1, value=0.9),
@@ -121,27 +121,27 @@ ui <- fluidPage(
                      checkboxInput("b_target_cstat","c-statistc", value=TRUE),
                       conditionalPanel(
                         condition = "input.b_target_cstat == 1",
-                        sliderInput("ciw_cstat", "95%CI width", 0.0, 0.3, value=0.1)
+                        sliderInput("ciw_cstat", "Target CI width", 0.0, 0.3, value=0.1)
                       ),
-                    checkboxInput("b_target_cal_slp","Calibration slope"), 
+                    checkboxInput("b_target_cal_slp","Calibration slope", value = TRUE), 
                     conditionalPanel(
                       condition = "input.b_target_cal_slp == 1",
-                      sliderInput("ciw_cal_slp", "95%CI width", 0.0, 0.5, value=0.2)
+                      sliderInput("ciw_cal_slp", "Target CI width", 0.0, 0.5, value=0.2)
                     ),
                     checkboxInput("b_target_cal_oe","Calibration O/E", value=TRUE), 
                     conditionalPanel(
                       condition = "input.b_target_cal_oe == 1",
-                      sliderInput("ciw_cal_oe", "95%CI width", 0.0, 0.5, value=0.2)
+                      sliderInput("ciw_cal_oe", "Target CI width", 0.0, 0.5, value=0.2)
                     ),
                     checkboxInput("b_target_cal_int","Calibration intercept"), 
                     conditionalPanel(
                       condition = "input.b_target_cal_int == 1",
-                      sliderInput("ciw_cal_int", "95%CI width", 0.0, 0.5, value=0.2)
+                      sliderInput("ciw_cal_int", "Target CI width", 0.0, 0.5, value=0.2)
                     ),
                     checkboxInput("b_target_cal_mean","Calibration in the large (mean calibration)"), 
                     conditionalPanel(
                       condition = "input.b_target_cal_mean == 1",
-                      sliderInput("ciw_cal_mean", "95%CI width", 0.0, 0.5, value=0.2)
+                      sliderInput("ciw_cal_mean", "Target CI width", 0.0, 0.5, value=0.2)
                     )
                  )
              ),
@@ -166,7 +166,7 @@ ui <- fluidPage(
           textAreaInput("N", "Please enter sample sizes of interest (comma separated)","250,500,1000,2000,4000,8000"),
           numericInput("n_sim", "Monte Carlo sample size", min=100, max=10^6, value=1000),
           numericInput("seed", "Random number seed (optional)", value = NULL, width="50px"),
-          selectInput("method","Computation method", choices = unname(choices$method_type))
+          selectInput("method","Computation method", choices = unname(choices$method_type), selected=unname(choices$method_type)[2])
         ),
         actionButton("btn_run", "Run"), 
         actionButton("btn_show_args", "Show args"),
