@@ -117,7 +117,7 @@ if(isTRUE(args$rules$nb_voi))
   tbl <- rbind(tbl, my_format(results$nb$evsi))
   nms <- c(nms,"EVSI")
 }
-if(isTRUE(args$rules$nb_assurance))
+if(!is.null(args$rules$nb_assurance))
 {
   tbl <- rbind(tbl, my_format(results$nb$assurance))
   nms <- c(nms,"Assurance")
@@ -135,9 +135,7 @@ library(ggplot2)
 plot_data <- data.frame(
   N = args$N,  # Sample sizes
   EVSI = results$nb$evsi,  # EVSI values
-  EVPI = rep(results$nb$evpi, length(args$N)),  # Repeated EVPI values
-  Assurance = results$nb$assurance,
-  Rule = rep(args$rules$nb_assurance, length(args$N))
+  EVPI = rep(results$nb$evpi, length(args$N))  # Repeated EVPI values
 )
 
 # Create the plot
@@ -147,6 +145,11 @@ ggplot(plot_data, aes(x = N)) +
   labs(x = "Sample size", y = "VoI") +        # Add axis labels
   theme_minimal()                             # Use a minimal theme
 
+plot_data <- data.frame(
+  N = c(0,args$N),  # Sample sizes
+  Assurance = c(results$nb$assurance0, results$nb$assurance),
+  Rule = rep(args$rules$nb_assurance, 1+length(args$N))
+)
 
  ggplot(plot_data, aes(x = N)) +
      geom_line(aes(y = Assurance), color = "black") +  # Plot Assurance as a black line

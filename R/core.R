@@ -1,7 +1,7 @@
 #' @import fastLogisticRegressionWrap
 #' @import mcmapper
 #' @import pROC
-#' @import evsiexval
+# #' @import evsiexval
 #' @import mc2d
 #' @import logitnorm
 #' @import cobs
@@ -876,16 +876,46 @@ BayesCPM <- function(N, evidence, dist_type="logitnorm", method="sample", target
   {
     f_progress("VoI and NB assuraance...")
     
-    require(evsiexval)
-    res <- evsiexval::EVSI_gf(sample[,c('prev','se','sp')], future_sample_sizes=N,  ignore_prior=TRUE, z=threshold)
+    #require(evsiexval)
+    #res <- evsiexval::EVSI_gf(sample[,c('prev','se','sp')], future_sample_sizes=N,  ignore_prior=TRUE, z=threshold)
+    
+    tnb1 <- sample$prev*sample$se - (1-sample$prev)*(1-sample$sp)*threshold/(1-threshold)
+    tnb2 <- sample$prev - (1-sample$prev)*threshold/(1-threshold)
+    tnbs <- cbind(0,tnb1,tnb2)
+    maxnbs <- apply(tnbs, 1, max)
+    maxenb <- max(colMeans(tnbs))
+    evsi <- assurance <- rep(0, length(N))
+    evpi <- mean(maxnbs)-maxenb
+    assurance0 <- mean(apply(tnbs, 1, which.max)==which.max(colMeans(tnbs)))
+    time <- Sys.time()
+    for(I in 1:n_sim)
+    {
+      for(i in 1:length(N))
+      {
+        n <- N[i]
+        nd <- rbinom(rep(n,n_sim), n, sample$prev)
+        ntp <- rbinom(rep(n,n_sim), nd, sample$se)
+        nfp <- rbinom(rep(n,n_sim), n-nd, 1-sample$sp)
+        
+        nb1 <- ntp/n - nfp/n*threshold/(1-threshold)
+        nb2 <- nd/n - (1-nd/n)*threshold/(1-threshold)
+        
+        winners <- apply(cbind(0,nb1,nb2), 1, which.max)
+        winnertnbs <- tnbs[cbind(1:n_sim,winners)]
+        evsi[i] <- evsi[i]+mean(winnertnbs)-maxenb
+        assurance[i] <- assurance[i]+mean(winnertnbs==maxnbs)
+      }
+    }
+    message(Sys.time()-time)
     if(b_voi)
     {
-      out$nb$evpi <- res$EVPI
-      out$nb$evsi <- res$EVSI
+      out$nb$evpi <- evpi #res$EVPI
+      out$nb$evsi <- evsi/n_sim #res$EVSI
     }
     if(b_assurance)
     {
-      out$nb$assurance <- res$EVSIp
+      out$nb$assurance0 <- assurance0
+      out$nb$assurance <- assurance/n_sim #res$EVSIp
     }
   }
   

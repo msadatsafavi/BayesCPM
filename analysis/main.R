@@ -22,5 +22,6 @@ method="sample"
 
 library(bayescpm)
 set.seed(1)
-res <- BayesCPM(N, evidence3, dist_type=dist_type, method=method, target_ciws=target_ciws, rules=rules, n_sim=n_sim, impute_cor=impute_cor, threshold=threshold)
+res <- BayesCPM(N, evidence2, dist_type=dist_type, method=method, target_ciws=target_ciws, rules=rules, n_sim=n_sim, impute_cor=impute_cor, threshold=threshold)
+
 
