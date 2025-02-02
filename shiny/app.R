@@ -43,8 +43,8 @@ ui <- fluidPage(
                   </P>
 
                   <HR/>
-                  <DIV style='display: flex;	 align-items: flex-end;  align-text: center'>App version 2025.01.28. For questions and bug reports contact msafavi@mail.ubc.ca</DIV>
-      ")),
+      "), radioButtons("purpose", "How do you want to use this tool?", choices=c("I know the sample size and want to estimate precision", "I want to calculate sample size"))
+      ),
       tabPanel("Evidence on model performance",
         HTML("Here we solicit your assessment of the model performance and your uncertainty around this asessment."),
         hr(),
@@ -58,7 +58,6 @@ ui <- fluidPage(
                   numericInput("evidence_prev_input_parm1","Parm 1",value=0.427967,min=0,max=1,width="75px")),
                 column(4,
                   numericInput("evidence_prev_input_parm2","Parm 2",value=0.0295,min=0,max=1,width="75px")))
-          
         ),
         sidebarPanel("Evidence on c-statistic",
           selectInput("evidence_cstat_dist_type", "Distribution type", choices=c("logitnorm", "beta", "probitnorm"), selected="beta"),
@@ -79,19 +78,32 @@ ui <- fluidPage(
                    numericInput("evidence_cal_slp_input_parm1","Parm 1",value=0.9950,min=0.5,max=2,width="75px")),
             column(4,
                    numericInput("evidence_cal_slp_input_parm2","Parm 2",value=0.0237,min=0,max=1,width="75px"))),
-          
+        ), 
+        sidebarPanel("Evidence on O/E or equivalent",
           selectInput("evidence_cal_other_type", "And one of:", choices=unname(choices$evidence_cal_other_type), selected="Mean calibration"),
           conditionalPanel("input.evidence_cal_other_type!=''",
-            selectInput("evidence_cal_other_dist_type", "Distribution type", choices=c("norm","lognorm")),
-            radioButtons("evidence_cal_other_input_type", "How do you want to parameterize", choices=unname(choices$evidence_cal_other_input_type), selected=unname(choices$evidence_cal_other_input_type)[2]),
-            fluidRow(
-              column(4,
-                     numericInput("evidence_cal_other_input_parm1","Parm 1",value=-0.00934,min=0,max=1,width="75px")),
-              column(4,
-                     numericInput("evidence_cal_other_input_parm2","Parm 2",value=0.1245,min=0,max=1,width="75px")))
-          ),
-           
-        ), 
+                           selectInput("evidence_cal_other_dist_type", "Distribution type", choices=c("norm","lognorm")),
+                           selectInput("evidence_cal_other_input_type", "How do you want to parameterize", choices=unname(choices$evidence_cal_other_input_type), selected=unname(choices$evidence_cal_other_input_type)[2]),
+                           fluidRow(
+                             column(4,
+                                    numericInput("evidence_cal_other_input_parm1","Parm 1",value=-0.00934,min=0,max=1,width="75px")),
+                             column(4,
+                                    numericInput("evidence_cal_other_input_parm2","Parm 2",value=0.1245,min=0,max=1,width="75px")))
+          )
+        ),
+        sidebarPanel("Evidence on outcome prevalence in target",
+          checkboxInput("b_dprev","Prevalence in the target population is different"),
+          conditionalPanel("input.b_dprev==1",
+                       selectInput("evidence_dprev_dist_type", "Distribution type", choices=c("logitnorm", "beta", "probitnorm"), selected="beta"),
+                       selectInput("evidence_dprev_input_type", "How do you want to parameterize", choices=unname(choices$evidence_prev_input_type), selected="Mean and SD"),
+                       
+                       fluidRow(
+                         column(4,
+                                numericInput("evidence_dprev_input_parm1","Parm 1",value=0.427967,min=0,max=1,width="75px")),
+                         column(4,
+                                numericInput("evidence_dprev_input_parm2","Parm 2",value=0.0295,min=0,max=1,width="75px")))
+          )
+        ),
         sidebarPanel(
           checkboxInput("b_impute_cor","Impute correlation", value=1),
           selectInput("dist_type", "Distribution of calibrated risks", choices=c("logitnorm","beta","probitnorm")),
@@ -179,7 +191,8 @@ ui <- fluidPage(
                actionButton("btn_show_all", "Show results"),
                uiOutput("report1")
       )
-    )
+    ),
+    HTML("<DIV style='display: flex;	 align-items: flex-end;  align-text: center'>App version 2025.01.28. For questions and bug reports contact msafavi@mail.ubc.ca</DIV>")
 )
 
 
