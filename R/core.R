@@ -319,8 +319,19 @@ infer_correlation <- function(dist_type, dist_parms, cal_int, cal_slp, n, n_sim)
 
 
 
-
-
+#' @export
+express_evidence <- function(evidence, round_digits=3)
+{
+  out <- "";
+  for(i in 1:length(evidence))
+  {
+    nm <- names(evidence)[i]
+    item <- evidence[[i]]
+    out <- paste0(out, nm, "~", item$type, "(", round(item$parms[1], round_digits), ",", round(item$parms[2], round_digits),")\n")
+  }
+  
+  paste(out, collapse="\n")
+}
 
 
 
@@ -377,13 +388,17 @@ calc_riley_vars <- function(N, parms)
 
 
 
-#N can be vector
-#DEPRECATED
-# calc_ciw_1s <- function(N, parms)
-# {
-#   vars <- calc_vars(N, parms)
-#   list(oe=sqrt(vars$oe), cstat=sqrt(vars$cstat), cal_slp=sqrt(vars$cal_slp))
-# }
+
+#' @export
+calc_riley_samp <- function(parms, targets)
+{
+  require(pmvalsampsize)
+  res <- pmvalsampsize("b", cslope=parms$cal_slp, csciwidth=targets )
+}
+
+
+
+
 
 
 #N can be vector

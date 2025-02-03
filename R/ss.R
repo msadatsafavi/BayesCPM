@@ -1,10 +1,7 @@
 #' @export
-bcpm_valsamp <- function(evidence=list(prev=list(type="beta", var=0.000872595702409054, mean=0.427966984132821),
-                                       cstat=list(type="beta", mean=0.760730571861002, var=3.82247885993882e-05),
-                                       cal_mean=list(type="norm", mean=-0.00934717199436785, var=0.0155046339663481),
-                                       cal_slp=list(type="norm", mean=0.995017759715243, var=0.000563011700688932)),
-                     targets=list(eciw.cstat=0.1, eciw.cal_oe=0.1, qciw.cal_oe=c(0.15, 0.9), assurance.nb=0.9),
-                     n_sim=1000, 
+bpm_valsamp <- function(evidence,
+                     targets,
+                     n_sim, 
                      method="sample", 
                      threshold=NULL, 
                      dist_type="logitnorm",
@@ -126,7 +123,7 @@ bcpm_valsamp <- function(evidence=list(prev=list(type="beta", var=0.000872595702
   
   if(!is.na(match("fciw", target_rules))) #Frequentist CIWs
   {
-    fv <-  bayescpm:::calc_riley_ss(N, parms=base)
+    fv <-  bayescpm:::calc_riley_samp(N, parms=base)
     targets <- unique(target_rules[which(target_rules=="fciw")])
     for(item in names(fv))
     {
@@ -142,14 +139,14 @@ bcpm_valsamp <- function(evidence=list(prev=list(type="beta", var=0.000872595702
     indices <- which(target_rules=="eciw" | target_rules=="qciw")
     targets <- unique(target_metrics[indices])
     res <- find_n_RM(sample, target_rules[indices], target_metrics[indices], target_values[indices], base_parms=base)
-    out$N <- as.list(res$N)
+    out$N <- res$N
     out$trace <- res$trace
   }
   
   
   
   # Step 6: Calculate se and sp
-  b_voi <- !is.na(match("assurance", target_rules)) | !is.na(match("evsi", target_rules))
+  b_voi <- !is.na(match("assurance", target_rules)) | !is.na(match("voi", target_rules))
   if(b_voi)
   {
     if(is.null(threshold)) stop("NB-related stuff was requested but threshold is not specified") #Todo: move earlier to avoid this late error

@@ -111,26 +111,48 @@ collect_evidence <- function(input)
 collect_targets <- function(input)
 {
   targets <- list()
-  if(input$b_target_cstat)
+  items <- c("cstat", "cal_slp", "cal_oe", "cal_mean", "cal_int")
+  
+  if(input$b_feciw)
   {
-    targets$cstat <- input$ciw_cstat
+    type <- input$feciw_type
+    for(item in items)
+    {
+      if(input[[paste0("b_target_",item)]])
+      {
+        targets[paste0(type,".",item)]=ifelse(input$purpose=='pow', TRUE, input[[paste0("eciw_",item)]])
+      }
+    }
   }
-  if(input$b_target_cal_oe)
+  
+  if(input$b_qciw)
   {
-    targets$cal_oe <- input$ciw_cal_oe
+    for(item in items)
+    {
+      if(input[[paste0("b_target_",item)]])
+      {
+        if(input$purpose=='pow')
+        {
+          tmp <- input$qciw
+        }else
+        {
+          tmp <- c(input[[paste0("qciw_",item)]], input$qciw)
+        }
+        targets[[paste0("qciw.",item)]] <- tmp 
+      }
+    }
   }
-  if(input$b_target_cal_mean)
+  
+  
+  if(input$b_voi_nb)
   {
-    targets$cal_mean <- input$ciw_cal_mean
+    targets$voi.nb=ifelse(input$purpose=='pow', TRUE, TRUE)
   }
-  if(input$b_target_cal_slp)
+  if(input$b_assurance_nb)
   {
-    targets$cal_slp <- input$ciw_cal_slp
+    targets$assurance.nb=ifelse(input$purpose=='pow', TRUE, input$assurance_nb)
   }
-  if(input$b_target_cal_int)
-  {
-    targets$cal_int <- input$ciw_cal_int
-  }
+  
   targets
 }
 
@@ -138,31 +160,7 @@ collect_targets <- function(input)
 
 
 
-collect_rules <- function(input)
-{
-  rules <- list()
-  if(input$b_fciw)
-  {
-    rules$fciw <- TRUE
-  }
-  if(input$b_eciw)
-  {
-    rules$eciw <- TRUE
-  }
-  if(input$b_qciw)
-  {
-    rules$qciw<-input$qciw
-  }
-  if(input$b_nb_voi)
-  {
-    rules$nb_voi <- TRUE
-  }
-  if(input$b_nb_assurance)
-  {
-    rules$nb_assurance <- input$nb_assurance
-  }
-  rules
-}
+
 
 
 
@@ -170,7 +168,9 @@ gen_args <- function(input)
 {
   out <- list()
   
-  out$N <- eval(parse(text = paste("c(",input$N,")")))
+  if(input$purpose=="pow") out$N <- eval(parse(text = paste("c(",input$N,")")))
+  
+  out$evidence <- collect_evidence(input)
   
   out$dist_type <- input$dist_type
   
@@ -180,11 +180,7 @@ gen_args <- function(input)
   
   out$method=names(choices$method_type)[match(input$method,choices$method_type)]
   
-  out$evidence <- collect_evidence(input)
-  
-  out$target_ciws <- collect_targets(input)
-  
-  out$rules <- collect_rules(input)
+  out$targets <- collect_targets(input)
   
   if(!is.null(input$threshold))
   {

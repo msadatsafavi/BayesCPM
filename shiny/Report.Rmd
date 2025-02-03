@@ -19,6 +19,7 @@ my_format <- function(x)
 }
 
 
+
 ```
 
 
@@ -32,6 +33,12 @@ if(is.null(params$data) | length(params$data)==0)
   results <- params$data$results
   args <- params$data$args
 }
+
+tmp <- as.data.frame(lapply(names(args$targets), strsplit, "[.]"))
+target_rules <- unname(unlist(tmp[1,]))
+target_metrics <- unname(unlist(tmp[2,]))
+target_values <- (args$targets)
+ 
 ```
 
 
@@ -39,7 +46,8 @@ if(is.null(params$data) | length(params$data)==0)
 
 ## CI widths
 ```{r, echo=FALSE, results='asis'}
-for(target in names(args$target_ciws))
+relevants <- which(target_rules=='fciw')
+for(metric in target_metrics[relevants])
 {
   tbl <- list()
   nms <- c()
@@ -112,61 +120,73 @@ print(p)
 ```
 
 
+
+
 ## VoI
 
 ```{r, echo=FALSE, results='asis'}
 
-print(results$nb$evpi)
-
-tbl <- list()
-nms <- c()
-if(isTRUE(args$rules$nb_voi))
+if(!is.null(args$targets$assurance.nb) | !is.null(args$targets$voi.nb))
 {
-  tbl <- rbind(tbl, my_format(results$nb$evsi))
-  nms <- c(nms,"EVSI")
+  
+  tbl <- list()
+  nms <- c()
+  if(isTRUE(args$targets$voi.nb))
+  {
+    print(paste0("EVPI=",results$voi$evpi))
+  
+    tbl <- rbind(tbl, my_format(results$voi$evsi))
+    nms <- c(nms,"EVSI")
+  }
+  if(isTRUE(args$targets$assurance.nb))
+  {
+    print(paste0("BAse assurance (at N=0)=",results$assurance$assurance0))
+  
+    tbl <- rbind(tbl, my_format(results$assurance$assurance))
+    nms <- c(nms,"Assurance")
+  }
+  
+  rownames(tbl) <- nms
+  colnames(tbl) <- paste0("N=",args$N)
+  
+  print(kable(tbl))
+  cat("\n")
+  
+  library(ggplot2)
+  
+  if(isTRUE(args$targets$voi.nb))
+  {
+    # Create a data frame for ggplot
+    plot_data <- data.frame(
+      N = args$N,  # Sample sizes
+      EVSI = results$voi$evsi,  # EVSI values
+      EVPI = rep(results$voi$evpi, length(args$N))  # Repeated EVPI values
+    )
+    
+    # Create the plot
+    ggplot(plot_data, aes(x = N)) +
+      geom_line(aes(y = EVSI), color = "black") +  # Plot EVSI as a black line
+      geom_line(aes(y = EVPI), color = "gray") +   # Plot EVPI as a red line
+      labs(x = "Sample size", y = "VoI") +        # Add axis labels
+      theme_minimal()                             # Use a minimal theme
+  }  
+  
+  if(isTRUE(args$targets$assurance.nb))
+  {
+    plot_data <- data.frame(
+      N = args$N,  # Sample sizes
+      Assurance = results$assurance$assurance,
+      Assurance0 = rep(results$assurance$assurance0, length(args$N))
+    )
+    
+     ggplot(plot_data, aes(x = N)) +
+         geom_line(aes(y = Assurance), color = "black") +  # Plot Assurance as a black line
+         geom_line(aes(y = Assurance0), color = "gray") +         # Plot Rule as a red line
+         labs(x = "Sample size", y = "Assurance") +             # Add axis labels
+         ylim(0, max(results$assurance$assurance)) +  # Set y-axis limits
+         theme_minimal()
+  }
 }
-if(!is.null(args$rules$nb_assurance))
-{
-  tbl <- rbind(tbl, my_format(results$nb$assurance))
-  nms <- c(nms,"Assurance")
-}
-
-rownames(tbl) <- nms
-colnames(tbl) <- paste0("N=",args$N)
-
-print(kable(tbl))
-cat("\n")
-
-library(ggplot2)
-
-# Create a data frame for ggplot
-plot_data <- data.frame(
-  N = args$N,  # Sample sizes
-  EVSI = results$nb$evsi,  # EVSI values
-  EVPI = rep(results$nb$evpi, length(args$N))  # Repeated EVPI values
-)
-
-# Create the plot
-ggplot(plot_data, aes(x = N)) +
-  geom_line(aes(y = EVSI), color = "black") +  # Plot EVSI as a black line
-  geom_line(aes(y = EVPI), color = "gray") +   # Plot EVPI as a red line
-  labs(x = "Sample size", y = "VoI") +        # Add axis labels
-  theme_minimal()                             # Use a minimal theme
-
-plot_data <- data.frame(
-  N = args$N,  # Sample sizes
-  Assurance = results$nb$assurance,
-  Rule = rep(args$rules$nb_assurance, length(args$N)),
-  Assurance0 = rep(results$nb$assurance0, length(args$N))
-)
-
- ggplot(plot_data, aes(x = N)) +
-     geom_line(aes(y = Assurance), color = "black") +  # Plot Assurance as a black line
-     geom_line(aes(y = Assurance0), color = "gray") +         # Plot Rule as a red line
-     geom_line(aes(y = Rule), color = "red") +         # Plot Rule as a red line
-     labs(x = "Sample size", y = "Assurance") +             # Add axis labels
-     ylim(0, max(results$nb$assurance, args$rules$nb_assurance)) +  # Set y-axis limits
-     theme_minimal()      
 
 ```
 

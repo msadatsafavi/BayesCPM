@@ -43,7 +43,7 @@ ui <- fluidPage(
                   </P>
 
                   <HR/>
-      "), radioButtons("purpose", "How do you want to use this tool?", choices=c("I know the sample size and want to estimate precision", "I want to calculate sample size"))
+      "), selectInput("purpose", "How do you want to use this tool?", choices=c("I know the sample size and want to estimate precision"="pow", "I want to calculate sample size"="samp"), width="300px")
       ),
       tabPanel("Evidence on model performance",
         HTML("Here we solicit your assessment of the model performance and your uncertainty around this asessment."),
@@ -91,86 +91,131 @@ ui <- fluidPage(
                                     numericInput("evidence_cal_other_input_parm2","Parm 2",value=0.1245,min=0,max=1,width="75px")))
           )
         ),
-        sidebarPanel("Evidence on outcome prevalence in target",
-          checkboxInput("b_dprev","Prevalence in the target population is different"),
-          conditionalPanel("input.b_dprev==1",
-                       selectInput("evidence_dprev_dist_type", "Distribution type", choices=c("logitnorm", "beta", "probitnorm"), selected="beta"),
-                       selectInput("evidence_dprev_input_type", "How do you want to parameterize", choices=unname(choices$evidence_prev_input_type), selected="Mean and SD"),
-                       
-                       fluidRow(
-                         column(4,
-                                numericInput("evidence_dprev_input_parm1","Parm 1",value=0.427967,min=0,max=1,width="75px")),
-                         column(4,
-                                numericInput("evidence_dprev_input_parm2","Parm 2",value=0.0295,min=0,max=1,width="75px")))
-          )
-        ),
+        # sidebarPanel("Evidence on outcome prevalence in target",
+        #   checkboxInput("b_dprev","Prevalence in the target population is different"),
+        #   conditionalPanel("input.b_dprev==1",
+        #                selectInput("evidence_dprev_dist_type", "Distribution type", choices=c("logitnorm", "beta", "probitnorm"), selected="beta"),
+        #                selectInput("evidence_dprev_input_type", "How do you want to parameterize", choices=unname(choices$evidence_prev_input_type), selected="Mean and SD"),
+        #                
+        #                fluidRow(
+        #                  column(4,
+        #                         numericInput("evidence_dprev_input_parm1","Parm 1",value=0.427967,min=0,max=1,width="75px")),
+        #                  column(4,
+        #                         numericInput("evidence_dprev_input_parm2","Parm 2",value=0.0295,min=0,max=1,width="75px")))
+        #   )
+        # ),
         sidebarPanel(
           checkboxInput("b_impute_cor","Impute correlation", value=1),
           selectInput("dist_type", "Distribution of calibrated risks", choices=c("logitnorm","beta","probitnorm")),
         ),
-        actionButton("btn_test_evidence", label="Test evidence"), uiOutput("test_evidence_results")
+        actionButton("btn_test_evidence", label="Test evidence"), pre(uiOutput("test_evidence_results"))
       ),
+      
+      
+      
+      
+      
+#3#TARGETS
       tabPanel("Targets",
         HTML("Please choose outcome types, metrics, and target values."),
         hr(),
         fluidRow(
              column(12,
                sidebarPanel(
-                 checkboxInput("b_stats","I want to specify precision targets for statistical metrics (discrimination and calibration)", value=TRUE),
+                 checkboxInput("b_stats","I want to investigate precision targets for statistical metrics (discrimination and calibration)", value=TRUE),
                  hr(),
                  conditionalPanel(
                     HTML("Please specify the type of outcomes"),
                     condition = "input.b_stats==1",
-                    checkboxInput("b_fciw","Conventional (frequentist) CI width", value=TRUE),
-                    checkboxInput("b_eciw","Expected CI width", value=TRUE),
+                    checkboxInput("b_feciw","Expected CI width", value=TRUE),
+                    conditionalPanel("input.b_feciw==1",
+                        selectInput("feciw_type", "Conventional or Bayesian?", choices=c("POint estimate of CI width (conventional)"="fciw", "Expected CI width (BAyesian)"="eciw")),
+                    ),
                     checkboxInput("b_qciw","Quantile of CI width", value = TRUE),
                     conditionalPanel(
                      condition = "input.b_qciw==1",
-                     sliderInput("qciw", "Quantile (assurance) value", 0.0, 1, value=0.9),
+                     sliderInput("qciw", "Quantile value", 0.0, 1, value=0.9),
                     ),hr(),
                      HTML("Please specify metrics of interest"),
                      conditionalPanel(condition="input.b_fciw+input.b_eciw+input.b_qciw==0", HTML("<font color='red'>At least one item needs to be selected.</font>")),
                      checkboxInput("b_target_cstat","c-statistc", value=TRUE),
-                      conditionalPanel(
-                        condition = "input.b_target_cstat == 1",
-                        sliderInput("ciw_cstat", "Target CI width", 0.0, 0.3, value=0.1)
-                      ),
-                    checkboxInput("b_target_cal_slp","Calibration slope", value = TRUE), 
-                    conditionalPanel(
-                      condition = "input.b_target_cal_slp == 1",
-                      sliderInput("ciw_cal_slp", "Target CI width", 0.0, 0.5, value=0.2)
-                    ),
-                    checkboxInput("b_target_cal_oe","Calibration O/E", value=TRUE), 
-                    conditionalPanel(
-                      condition = "input.b_target_cal_oe == 1",
-                      sliderInput("ciw_cal_oe", "Target CI width", 0.0, 0.5, value=0.2)
-                    ),
-                    checkboxInput("b_target_cal_int","Calibration intercept"), 
-                    conditionalPanel(
-                      condition = "input.b_target_cal_int == 1",
-                      sliderInput("ciw_cal_int", "Target CI width", 0.0, 0.5, value=0.2)
-                    ),
-                    checkboxInput("b_target_cal_mean","Calibration in the large (mean calibration)"), 
-                    conditionalPanel(
-                      condition = "input.b_target_cal_mean == 1",
-                      sliderInput("ciw_cal_mean", "Target CI width", 0.0, 0.5, value=0.2)
-                    )
+                     checkboxInput("b_target_cal_slp","Calibration slope", value = TRUE), 
+                     checkboxInput("b_target_cal_oe","Calibration O/E", value=TRUE), 
+                     checkboxInput("b_target_cal_int","Calibration intercept"), 
+                     checkboxInput("b_target_cal_mean","Calibration in the large (mean calibration)")
                  )
+             ),
+             conditionalPanel("input.purpose=='samp'",
+                conditionalPanel("input.b_target_cstat==1",
+                      sidebarPanel(
+                                HTML("c-statistic:"),
+                                conditionalPanel("input.b_feciw==1",
+                                  sliderInput("eciw_cstat", "Expected CI width", min=0.0, max=0.5, value=0.1)
+                                ),
+                                conditionalPanel("input.b_qciw==1",
+                                  sliderInput("qciw_cstat", "Assurance CI width", min=0.0, max=0.5, value=0.1)
+                                )
+                        )
+                ),
+                conditionalPanel("input.b_target_cal_slp==1",
+                        sidebarPanel(
+                                 HTML("Calibration slope:"),
+                                 conditionalPanel("input.b_feciw==1",
+                                                  sliderInput("eciw_cal_slp", "Expected CI width", min=0.0, max=0.5, value=0.1)
+                                 ),
+                                 conditionalPanel("input.b_qciw==1",
+                                                  sliderInput("qciw_cal_slp", "Assurance CI width", min=0.0, max=0.5, value=0.1)
+                                 )
+                        )
+                ),
+                conditionalPanel("input.b_target_cal_oe==1",
+                        sidebarPanel(
+                                 HTML("Calibration O/E:"),
+                                 conditionalPanel("input.b_feciw==1",
+                                                  sliderInput("eciw_cal_oe", "Expected CI width", min=0.0, max=0.5, value=0.1)
+                                 ),
+                                 conditionalPanel("input.b_qciw==1",
+                                                  sliderInput("qciw_cal_oe", "Assurance CI width", min=0.0, max=0.5, value=0.1)
+                                 )
+                        )
+                ),
+                conditionalPanel("input.b_target_cal_mean==1",
+                        sidebarPanel(
+                                HTML("Mean calibration:"),
+                                conditionalPanel("input.b_feciw==1",
+                                                 sliderInput("eciw_cal_mean", "Expected CI width", min=0.0, max=0.5, value=0.1)
+                                ),
+                                conditionalPanel("input.b_qciw==1",
+                                                 sliderInput("qciw_cal_mean", "Assurance CI width", min=0.0, max=0.5, value=0.1)
+                                )
+                        )
+                ),
+                conditionalPanel("input.b_target_cal_int==1",
+                        sidebarPanel(
+                                 HTML("Calibration intercept:"),
+                                 conditionalPanel("input.b_feciw==1",
+                                                  sliderInput("eciw_cal_int", "Expected CI width", min=0.0, max=0.5, value=0.1)
+                                 ),
+                                 conditionalPanel("input.b_qciw==1",
+                                                  sliderInput("qciw_cal_int", "Assurance CI width", min=0.0, max=0.5, value=0.1)
+                                 )
+                        )
+                )
              ),
              sidebarPanel(
                checkboxInput("b_nb","I want to specify decision-theoretic targets for net benefit (NB)", value=TRUE), 
                conditionalPanel(
                  condition = "input.b_nb == 1",
                  sliderInput("threshold", "Risk threshold", min=0, max=1, value=0.2),
-                 checkboxInput("b_nb_voi","VoI (EVPI and EVSI)", value=TRUE),
-                 checkboxInput("b_nb_assurance","Assurance", value = 1),
+                 checkboxInput("b_voi_nb","VoI (EVPI and EVSI)", value=TRUE),
+                 checkboxInput("b_assurance_nb","Assurance", value = 1),
                  conditionalPanel(
-                   condition = "input.b_nb_assurance == 1",
+                   condition = "input.b_assurance_nb == 1",
                    sliderInput("nb_assurance", "Value", 0.0, 1, value=0.9)
                  )
                )
              )
-          ),
+          ), actionButton("btn_test_targets","Test targets"), pre(uiOutput("test_targets_results"))
         )
       ),
       tabPanel("Setup & run",
@@ -220,11 +265,17 @@ server <- function(input, output)
 {
   require(dplyr)
   
-  output$test_evidence_results<- reactive({
-    e1 <- collect_evidence(input)
-    e2 <- process_evidence(e1)
-    paste(deparse(list(L1=e1,L2=e2)),collapse="")
-  }) %>%  bindEvent(input$btn_test_evidence)
+  observeEvent(input$btn_test_evidence,
+    {
+      isolate({e1 <- collect_evidence(input); e2 <- express_evidence(process_evidence(e1));})
+      output$test_evidence_results <- renderText(paste0(paste(deparse(e1), collapse=""),"\n",e2))
+    })
+
+  observeEvent(input$btn_test_targets,
+               {
+                 isolate(targets <- collect_targets(input))
+                 output$test_targets_results <- renderText(paste(deparse(targets), collapse=""))
+               })
   
   observeEvent(input$btn_run,
    {
@@ -240,7 +291,7 @@ server <- function(input, output)
      
      if(is.numeric(input$seed)) {set.seed(input$seed)}
      
-     console <- capture.output({res <- do.call(BayesCPM, args=args)}, type="message")
+     console <- capture.output({res <- do.call(ifelse(input$purpose=="pow", bpm_valpow, bpm_valsamp), args=args)}, type="message")
      
      global$results <<- res
      

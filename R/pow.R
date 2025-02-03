@@ -1,5 +1,5 @@
 #' @export
-bcpm_valpow <- function(N=c(500,1000),
+bpm_valpow <- function(N=c(500,1000),
                         evidence=list(prev=list(type="beta", var=0.000872595702409054, mean=0.427966984132821),
                                    cstat=list(type="beta", mean=0.760730571861002, var=3.82247885993882e-05),
                                    cal_mean=list(type="norm", mean=-0.00934717199436785, var=0.0155046339663481),
@@ -176,8 +176,8 @@ bcpm_valpow <- function(N=c(500,1000),
   
  
   b_assurance <- sum((target_rules=="assurance" & target_values==T)>0)
-  b_evsi <- sum((target_rules=="evsi" & target_values==T)>0)
-  if(b_assurance | b_evsi)
+  b_voi <- sum((target_rules=="voi" & target_values==T)>0)
+  if(b_assurance | b_voi)
   {
     if(is.null(threshold)) stop("NB-related stuff was requested but threshold is not specified") #Todo: move earlier to avoid this late error
 # Step 6: Calculate se and sp
@@ -229,15 +229,15 @@ bcpm_valpow <- function(N=c(500,1000),
         assurance[i] <- assurance[i]+mean(winnertnbs==maxnbs)
       }
     }
-    if(b_evsi)
+    if(b_voi)
     {
-      out$evpi$nb <- evpi #res$EVPI
-      out$evsi$nb <- evsi/n_rep #res$EVSI
+      out$voi$evpi <- evpi #res$EVPI
+      out$voi$evsi <- evsi/n_rep #res$EVSI
     }
     if(b_assurance)
     {
-      out$assurance0$nb <- assurance0
-      out$assurance$nb <- assurance/n_rep #res$EVSIp
+      out$assurance$assurance0 <- assurance0
+      out$assurance$assurance <- assurance/n_rep #res$EVSIp
     }
   }
   
