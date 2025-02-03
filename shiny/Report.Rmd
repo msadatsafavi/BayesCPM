@@ -44,79 +44,55 @@ target_values <- (args$targets)
 
 
 
-## CI widths
+## fciw
 ```{r, echo=FALSE, results='asis'}
-relevants <- which(target_rules=='fciw')
-for(metric in target_metrics[relevants])
+
+for(rule in c('fciw','eciw','qciw'))
 {
-  tbl <- list()
-  nms <- c()
-  plot_data <- data.frame()
-  if(isTRUE(args$rules$fciw))
+  relevants <- which(target_rules==rule)
+  if(length(relevants)>0)
   {
-    tbl <- rbind(tbl, my_format(results$fciw[[target]]))
-    plot_data <- rbind(plot_data, results$fciw[[target]])
-    nms <- c(nms,"Point estimate (conventional)")
-  }
-  if(isTRUE(args$rules$eciw))
-  {
-    tbl <- rbind(tbl, my_format(results$eciw[[target]]))
-    plot_data <- rbind(plot_data, results$eciw[[target]])
-    nms <- c(nms,"Expected value")
-  }
-  if(!is.null(args$rules$qciw))
-  {
-    tbl <- rbind(tbl, my_format(results$qciw[[target]]))
-    plot_data <- rbind(plot_data, results$qciw[[target]])
-    nms <- c(nms,paste0("Quantile value (q=",args$rules$qciw,")"))
-  }
-
-  rownames(tbl) <- nms
-  rownames(plot_data) <- nms
-  colnames(tbl) <- paste0("N=",args$N)
+    tbl <- list()
+    nms <- c()
+    plot_data <- data.frame()
+    
+    for(metric in target_metrics[relevants])
+    {
+      tbl <- rbind(tbl, my_format(results[[rule]][[metric]]))
+      plot_data <- rbind(plot_data, results[[rule]][[metric]])
+      nms <- c(nms,metric)
+    }
   
-  print(kable(tbl, caption=target))
-  cat("\n")
-  
-  # Ensure plot_data is a data frame for ggplot
-  # plot_data_df <- as.data.frame(t(plot_data))
-  # plot_data_df$N <- args$N
-  # 
-  # # Reshape the data into long format for ggplot
-  # plot_data_long <- reshape2::melt(plot_data_df, id.vars = "N", variable.name = "Line", value.name = "Value")
-  # 
-  # # Create the plot
-  # p <- ggplot(plot_data_long, aes(x = N, y = Value, color = Line)) +
-  #   geom_line() +  # Plot all lines
-  #   geom_hline(yintercept = args$target_ciws$cstat, color = "red", linetype = "solid") +  # Add the horizontal red line
-  #   labs(x = "Sample size", y = target) +  # Add axis labels
-  #   theme_minimal()  # Use a minimal theme
-  # 
-  # # Print the plot
-  #  print(p)
-
-plot_data <- rbind(plot_data, Target=args$target_ciws[[target]])
-plot_data_df <- as.data.frame(t(plot_data))
-plot_data_df$N <- args$N
-
-# Get the row names before transposing
-row_names <- rownames(plot_data)
-
-# Reshape the data into long format for ggplot
-plot_data_long <- reshape2::melt(plot_data_df, id.vars = "N", variable.name = "Line", value.name = "Value")
-
-# Set the row names back to the Line column
-plot_data_long$Line <- rep(row_names, each = length(unique(plot_data_long$N)))
-
-# Create the plot
-p <- ggplot(plot_data_long, aes(x = N, y = Value, color = Line)) +
-  geom_line() +  # Plot all lines
-  labs(x = "Sample size", y = target) +  # Add axis labels
-  theme_minimal()  # Use a minimal theme
-# Print the plot
-print(p)
-  
+    rownames(tbl) <- nms
+    rownames(plot_data) <- nms
+    colnames(tbl) <- paste0("N=",args$N)
+    
+    print(kable(tbl, caption=rule))
+    cat("\n")
+    
+    
+    plot_data_df <- as.data.frame(t(plot_data))
+    plot_data_df$N <- args$N
+    
+    # Get the row names before transposing
+    row_names <- rownames(plot_data)
+    
+    # Reshape the data into long format for ggplot
+    plot_data_long <- reshape2::melt(plot_data_df, id.vars = "N", variable.name = "Line", value.name = "Value")
+    
+    # Set the row names back to the Line column
+    plot_data_long$Line <- rep(row_names, each = length(unique(plot_data_long$N)))
+    
+    # Create the plot
+    p <- ggplot(plot_data_long, aes(x = N, y = Value, color = Line)) +
+      geom_line() +  # Plot all lines
+      labs(x = "Sample size", y = target) +  # Add axis labels
+      theme_minimal()  # Use a minimal theme
+    # Print the plot
+    print(p)
+  }
 }
+  
 ```
 
 
@@ -164,11 +140,13 @@ if(!is.null(args$targets$assurance.nb) | !is.null(args$targets$voi.nb))
     )
     
     # Create the plot
-    ggplot(plot_data, aes(x = N)) +
+    p <- ggplot(plot_data, aes(x = N)) +
       geom_line(aes(y = EVSI), color = "black") +  # Plot EVSI as a black line
       geom_line(aes(y = EVPI), color = "gray") +   # Plot EVPI as a red line
       labs(x = "Sample size", y = "VoI") +        # Add axis labels
       theme_minimal()                             # Use a minimal theme
+    
+    plot(p)
   }  
   
   if(isTRUE(args$targets$assurance.nb))
@@ -179,12 +157,14 @@ if(!is.null(args$targets$assurance.nb) | !is.null(args$targets$voi.nb))
       Assurance0 = rep(results$assurance$assurance0, length(args$N))
     )
     
-     ggplot(plot_data, aes(x = N)) +
+    p <- ggplot(plot_data, aes(x = N)) +
          geom_line(aes(y = Assurance), color = "black") +  # Plot Assurance as a black line
          geom_line(aes(y = Assurance0), color = "gray") +         # Plot Rule as a red line
          labs(x = "Sample size", y = "Assurance") +             # Add axis labels
          ylim(0, max(results$assurance$assurance)) +  # Set y-axis limits
          theme_minimal()
+    
+    plot(p)
   }
 }
 
