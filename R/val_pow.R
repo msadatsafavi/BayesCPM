@@ -4,7 +4,7 @@ bpm_valpow <- function(N=c(500,1000),
                                    cstat=list(type="beta", mean=0.760730571861002, var=3.82247885993882e-05),
                                    cal_mean=list(type="norm", mean=-0.00934717199436785, var=0.0155046339663481),
                                    cal_slp=list(type="norm", mean=0.995017759715243, var=0.000563011700688932)),
-                     targets=list(fciw.cstat=T, fciw.cal_slp=T, eciw.cstat=T, eciw.cal_oe=T, qciw.cal_oe=c(0.9), assurance.nb=T, evsi.nb=T),
+                     targets=list(fciw.cstat=T, fciw.cal_slp=T, eciw.cstat=T, eciw.cal_oe=T, qciw.cal_oe=c(0.9), assurance.nb=T, voi.nb=T),
                      n_sim=1000, 
                      method="sample", 
                      threshold=NULL, 
@@ -124,7 +124,7 @@ bpm_valpow <- function(N=c(500,1000),
   
   # Step 5: Freq & Bayesian Riley
   
-  fciws <- which(target_rules=="fciw" & target_values==T)
+  fciws <- which(target_rules=="fciw" & !isFALSE(target_values))
   if(length(fciws>0)) #Frequentist CIWs
   {
     fv <- calc_riley_vars(N, parms=base)
@@ -145,7 +145,7 @@ bpm_valpow <- function(N=c(500,1000),
     out$fciw <- fv
   }
   
-  bciws <- which((target_rules=="eciw" | target_rules=="qciw") & (target_values==T | target_values>0))
+  bciws <- which((target_rules=="eciw" | target_rules=="qciw") & !isFALSE(target_values))
   if(length(bciws)>0)
   {
     f_progress("Computing CI widths...")
@@ -160,7 +160,7 @@ bpm_valpow <- function(N=c(500,1000),
       }
       if(target_rules[bciws[i]]=="qciw")
       {
-        out$qciw[[target_metrics[bciws[i]]]] <- apply(ciws[[target_metrics[bciws[i]]]], 2, quantile, target_values[[bciws[i]]])
+        out$qciw[[target_metrics[bciws[i]]]] <- apply(ciws[[target_metrics[bciws[i]]]], 2, quantile, target_values[[bciws[i]]][2])
       }
     }
     
@@ -175,8 +175,8 @@ bpm_valpow <- function(N=c(500,1000),
   }
   
  
-  b_assurance <- sum((target_rules=="assurance" & target_values==T)>0)
-  b_voi <- sum((target_rules=="voi" & target_values==T)>0)
+  b_assurance <- sum((target_rules=="assurance" & !isFALSE(target_values)))
+  b_voi <- sum((target_rules=="voi" & !isFALSE(target_values)))
   if(b_assurance | b_voi)
   {
     if(is.null(threshold)) stop("NB-related stuff was requested but threshold is not specified") #Todo: move earlier to avoid this late error

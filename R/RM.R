@@ -45,10 +45,9 @@ find_n_RM <- function(sample, target_rules, target_metrics, target_values, N0=10
         working_Ns[j] <- working_Ns[j]+steps[j]/i*ifelse(y[[target_metrics[j]]][j]>target_values[[j]][1], target_values[[j]][2], -(1-target_values[[j]][2]))
       }
       X[i,j] <- working_Ns[j]
-      Y[i,j] <- y[[j]][j]
+      Y[i,j] <- y[[target_metrics[j]]][j]
     }
   }
-  
   return(list(N=round(working_Ns), trace=cbind(X,Y)))
 }
 

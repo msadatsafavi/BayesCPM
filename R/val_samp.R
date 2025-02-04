@@ -123,15 +123,13 @@ bpm_valsamp <- function(evidence,
   
   if(!is.na(match("fciw", target_rules))) #Frequentist CIWs
   {
-    fv <-  bayescpm:::calc_riley_samp(N, parms=base)
-    targets <- unique(target_rules[which(target_rules=="fciw")])
-    for(item in names(fv))
+    target_ciws <- list()
+    for(i in which(target_rules=='fciw'))
     {
-      if(is.na(match(item,targets)))
-      {
-        fv[item] <- NULL
-      }
+      target_ciws[target_metrics[[i]]] <- target_values[[i]]
     }
+    N <-  riley_samp(target_ciws , parms=base)
+    out$N <- N
   }
   
   if(!is.na(match("eciw", target_rules)) | !is.na(match("qciw", target_rules)))
@@ -139,7 +137,7 @@ bpm_valsamp <- function(evidence,
     indices <- which(target_rules=="eciw" | target_rules=="qciw")
     targets <- unique(target_metrics[indices])
     res <- find_n_RM(sample, target_rules[indices], target_metrics[indices], target_values[indices], base_parms=base)
-    out$N <- res$N
+    out$N <- c(out$N, res$N)
     out$trace <- res$trace
   }
   
@@ -195,7 +193,7 @@ bpm_valsamp <- function(evidence,
     require(OOR)
     res <- StoSOO(c(1000), f, lower=100, upper=10^5, nb_iter=1000)
     
-    out$N <- c(out$N, assurance.nb=round(res$par))
+    out$N <- unlist(c(out$N, assurance.nb=round(res$par)))
   }
     
   out$sample <- sample

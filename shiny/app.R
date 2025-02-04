@@ -129,7 +129,7 @@ ui <- fluidPage(
                     condition = "input.b_stats==1",
                     checkboxInput("b_feciw","Expected CI width", value=TRUE),
                     conditionalPanel("input.b_feciw==1",
-                        selectInput("feciw_type", "Conventional or Bayesian?", choices=c("POint estimate of CI width (conventional)"="fciw", "Expected CI width (BAyesian)"="eciw")),
+                        selectInput("feciw_type", "Conventional or Bayesian?", choices=c("Point estimate of CI width (conventional)"="fciw", "Expected CI width (Bayesian)"="eciw")),
                     ),
                     checkboxInput("b_qciw","Quantile of CI width", value = TRUE),
                     conditionalPanel(
@@ -211,7 +211,7 @@ ui <- fluidPage(
                  checkboxInput("b_assurance_nb","Assurance", value = 1),
                  conditionalPanel(
                    condition = "input.b_assurance_nb == 1",
-                   sliderInput("nb_assurance", "Value", 0.0, 1, value=0.9)
+                   sliderInput("assurance_nb", "Value", 0.0, 1, value=0.9)
                  )
                )
              )
@@ -324,7 +324,7 @@ server <- function(input, output)
     #rmarkdown::render(input="Report.rmd", params=list(data=global$results), clean=T, runtime="shiny")
     #output$report1 <- renderUI(includeHTML("Report.html"))
     fl <- paste0(tempdir(),"/report.html")
-    rmarkdown::render(input="Report.Rmd", output_file=fl, params=list(data=global), clean=T)
+    rmarkdown::render(input=ifelse(input$purpose=="pow", "Report_pow.Rmd", "Report_samp.Rmd"), output_file=fl, params=list(data=global), clean=T)
     output$report1 <- renderUI(tags$iframe(src=base64enc::dataURI(file=fl, mime="text/html"), style='width:80vw;height:80vh;'))
   })
   

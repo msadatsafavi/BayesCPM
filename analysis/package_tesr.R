@@ -12,6 +12,9 @@ evidence3 <- list(prev=list(type="beta", m=0.47, cih=0.65),
 targets_ss <- list(eciw.cstat=0.1, eciw.cal_oe=0.1, qciw.cal_oe=c(0.15, 0.9), assurance.nb=0.9)
 targets_pow <- list(eciw.cstat=T, eciw.cal_oe=T, qciw.cal_oe=c(0.9), assurance.nb=T, voi.nb=T)
 
+targets_riley <- list(eciw.cstat=0.1, eciw.cal_slp=0.15, qciw.cstat=c(0.1, 0.9), qciw.cal_slp=c(0.15,0.9), assurance.nb=0.9)
+
+
 N<- c(50, 100, 200, 500, 1000, 2000)
 
 n_sim=1000
@@ -23,6 +26,8 @@ method="sample"
 
 library(bayescpm)
 set.seed(1)
-res <- bpm_valpow(evidence=evidence_isaric, dist_type=dist_type, method=method, targets=targets_pow, n_sim=n_sim, impute_cor=impute_cor, threshold=threshold)
+res <- bpm_valsamp(evidence=evidence_isaric, dist_type=dist_type, method=method, targets=targets_ss, n_sim=n_sim, impute_cor=impute_cor, threshold=threshold)
+
+res_riley <- bpm_valsamp(evidence=evidence_isaric, dist_type=dist_type, method=method, targets=targets_riley, n_sim=n_sim, impute_cor=impute_cor, threshold=threshold)
 
 

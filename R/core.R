@@ -161,53 +161,6 @@ calc_cstat <- function(type, parms, m=NULL) #For now we assume we know m
 
 
 
-# #@export
-# ENBS <- function(parms)
-# {
-#   if(parms$evidence_type=="ind_beta")
-#   {
-#     VoI <- EVSI_ag(parms$evidence, parms$z, n_sim=parms$n_sim_inner, future_sample_sizes=parms$n_stars)
-#   }
-#   if(parms$evidence_type=="prev_cs_A_B")
-#   {
-#     VoI <- EVSI_gf(parms$sample[,c('prev','se','sp')], parms$z, n_sim=parms$n_sim_inner, future_sample_sizes=parms$n_stars)
-#   }
-#   if(params$evidence_type=="sample")
-#   {
-#     VoI <- EVSI_gf(global_vars$params$evidence[,c('prev','se','sp')], global_vars$params$z, n_sim=global_vars$params$n_sim_inner, future_sample_sizes=global_vars$params$n_stars)
-#   }
-#
-#   EVPI <- VoI$EVPI
-#   EVSIs <- c(VoI$EVSI)
-#   ENBS <- EVSIs*parms$N-parms$n_stars/parms$lambda
-#
-#   data.frame("n_star"=as.integer(parms$n_stars),
-#              "EVPI"=EVPI,
-#              "EVSI"=EVSIs,
-#              "Population EVSI"=as.double(EVSIs*parms$N),
-#              "ENBS"=as.double(ENBS)
-#   )
-# }
-
-
-
-
-# export
-# find_n_star <- function(parms, n_iter=200)
-# {
-#   n_min <- min(parms$n_stars)
-#   n_max <- max(parms$n_stars)
-#
-#   require(OOR)
-#   res <- OOR::StoSOO(fn=function(x){
-#       parms$n_stars<-round(n_min+x*(n_max-n_min),0);
-#       ENBS(parms)$ENBS
-#     },
-#     par=c(0.5),
-#     nb_iter=n_iter,
-#     control=list(verbose=1, max=T))
-#   round(n_min+res$par*(n_max-n_min),0);
-# }
 
 
 
@@ -368,9 +321,9 @@ calc_riley_vars <- function(N, parms)
   if(dist_type=="probitnorm")
   {
     E_pi <- integrate(function(x){x*mcmapper::dprobitnorm(expit(logit(x)*cal_slp+cal_int),dist_parms[1],dist_parms[2])}, 0, 1,intercept=cal_int, slope=cal_slp)$value
-    I_a <- N*integrate(function(x){mcmapper::dprobitnorm(expit(logit(x)), dist_parms[1], dist_parms[2])*(exp(cal_int+x*cal_slp)/(1+exp(cal_int+x*cal_slp))^2)}, 0, 1)$value
-    I_b <- N*integrate(function(x){mcmapper::dprobitnorm(expit(logit(x)), dist_parms[1], dist_parms[2])*((x^2*exp(cal_int+x*cal_slp))/(1+exp(cal_int+x*cal_slp))^2)}, 0, 1)$value
-    I_ab <- N*integrate(function(x){mcmapper::dprobitnorm(expit(logit(x)), dist_parms[1], dist_parms[2])*((x*exp(cal_int+x*cal_slp))/(1+exp(cal_int+x*cal_slp))^2)}, 0, 1)$value
+    I_a <- integrate(function(x){mcmapper::dprobitnorm(expit(logit(x)), dist_parms[1], dist_parms[2])*(exp(cal_int+x*cal_slp)/(1+exp(cal_int+x*cal_slp))^2)}, 0, 1)$value
+    I_b <- integrate(function(x){mcmapper::dprobitnorm(expit(logit(x)), dist_parms[1], dist_parms[2])*((x^2*exp(cal_int+x*cal_slp))/(1+exp(cal_int+x*cal_slp))^2)}, 0, 1)$value
+    I_ab <- integrate(function(x){mcmapper::dprobitnorm(expit(logit(x)), dist_parms[1], dist_parms[2])*((x*exp(cal_int+x*cal_slp))/(1+exp(cal_int+x*cal_slp))^2)}, 0, 1)$value
   }
 
   v_prev <- prev*(1-prev)/N
@@ -390,10 +343,85 @@ calc_riley_vars <- function(N, parms)
 
 
 #' @export
-calc_riley_samp <- function(parms, targets)
+riley_samp <- function(target_ciws, parms)
 {
-  require(pmvalsampsize)
-  res <- pmvalsampsize("b", cslope=parms$cal_slp, csciwidth=targets )
+  out <- list()
+  K <- 2*qnorm(0.975)
+  
+  prev <- parms$prev
+  C <- parms$cstat
+  dist_type <- parms$dist_type
+  dist_parms <- c(parms$dist_parm1,parms$dist_parm2)
+  cal_int <- parms$cal_int
+  cal_slp <- parms$cal_slp
+  E_pi <- expit((logit(prev)-cal_int)/cal_slp)
+  
+  if(!is.null(target_ciws[['prev']]))
+  {
+    v <- (target_ciws[['prev']]/K)^2
+    out$fciw.prev <- round(prev*(1-prev)/v)
+  }
+  
+  if(!is.null(target_ciws[['cstat']]))
+  {
+    v <- (target_ciws[['cstat']]/K)^2
+    A <- C * (1 - C)
+    D <- ((1 - C) / (2 - C)) + (C / (1 + C))
+    a <- v * prev * (1 - prev)
+    b <- -A * D / 2
+    c <- A * D - A
+    discriminant <- b^2 - 4 * a * c
+    N1 <- (-b + sqrt(discriminant)) / (2 * a)
+    N2 <- (-b - sqrt(discriminant)) / (2 * a)
+    out$fciw.cstat <- round(max(N1,N2))
+  }
+  
+  if(!is.null(target_ciws[['cal_mean']]))
+  {
+    v <- (target_ciws[['cal_mean']]/K)^2 #TODO
+    out$fciw.cal_mean <- round(prev*(1-prev)/v)
+  }
+  
+  if(!is.null(target_ciws[['cal_oe']]))
+  {
+    v <- (target_ciws[['cal_oe']]/K)^2
+    out$fciw.cal_oe <- round((1-prev)/(v*E_pi))
+  }
+  
+  
+  if(!is.null(target_ciws[['cal_int']]) | !is.null(target_ciws[['cal_slp']]))
+  {
+    v1 <- (target_ciws[['cal_int']]/K)^2
+    v2 <- (target_ciws[['cal_slp']]/K)^2
+    
+    if(dist_type=="logitnorm")
+    {
+      #tryCatch({
+      #E_pi <- integrate(function(x){mcmapper::dlogitnorm(x,dist_parms[1],dist_parms[2])*(expit((logit(x)-cal_int)/cal_slp))},0,1)$value
+      I_a <- integrate(function(x){ mcmapper::dlogitnorm(x,dist_parms[1],dist_parms[2])*(x*(1-x))}, 0, 1)$value
+      I_b <- integrate(function(x){ mcmapper::dlogitnorm(x,dist_parms[1],dist_parms[2])*(((logit(x)-cal_int)/cal_slp)^2*(x*(1-x)))}, 0, 1)$value
+      I_ab <- integrate(function(x){mcmapper::dlogitnorm(x,dist_parms[1],dist_parms[2])*(((logit(x)-cal_int)/cal_slp)*(x*(1-x)))}, 0, 1)$value
+      #}, error=function(e){bad_place$parms <<- parms})
+    }
+    if(dist_type=="beta")
+    {
+      #E_pi <- integrate(function(x){x*dbeta(expit(logit(x)*cal_slp+cal_int),dist_parms[1],dist_parms[2])}, 0, 1,intercept=cal_int, slope=cal_slp)$value
+      I_a <- integrate(function(x){mcmapper::dbeta(expit(logit(x)), dist_parms[1], dist_parms[2])*(exp(cal_int+x*cal_slp)/(1+exp(cal_int+x*cal_slp))^2)}, 0, 1)$value
+      I_b <- integrate(function(x){mcmapper::dbeta(expit(logit(x)), dist_parms[1], dist_parms[2])*((x^2*exp(cal_int+x*cal_slp))/(1+exp(cal_int+x*cal_slp))^2)}, 0, 1)$value
+      I_ab <- integrate(function(x){mcmapper::dbeta(expit(logit(x)), dist_parms[1], dist_parms[2])*((x*exp(cal_int+x*cal_slp))/(1+exp(cal_int+x*cal_slp))^2)}, 0, 1)$value
+    }
+    if(dist_type=="probitnorm")
+    {
+      #E_pi <- integrate(function(x){x*mcmapper::dprobitnorm(expit(logit(x)*cal_slp+cal_int),dist_parms[1],dist_parms[2])}, 0, 1,intercept=cal_int, slope=cal_slp)$value
+      I_a <- integrate(function(x){mcmapper::dprobitnorm(expit(logit(x)), dist_parms[1], dist_parms[2])*(exp(cal_int+x*cal_slp)/(1+exp(cal_int+x*cal_slp))^2)}, 0, 1)$value
+      I_b <- integrate(function(x){mcmapper::dprobitnorm(expit(logit(x)), dist_parms[1], dist_parms[2])*((x^2*exp(cal_int+x*cal_slp))/(1+exp(cal_int+x*cal_slp))^2)}, 0, 1)$value
+      I_ab <- integrate(function(x){mcmapper::dprobitnorm(expit(logit(x)), dist_parms[1], dist_parms[2])*((x*exp(cal_int+x*cal_slp))/(1+exp(cal_int+x*cal_slp))^2)}, 0, 1)$value
+    }
+    
+    if(length(v1)>0)  out$fciw.cal_int <- round(I_b/(v1*(I_a*I_b-I_ab^2)))
+    if(length(v2)>0)  out$fciw.cal_slp <- round(I_a/(v2*(I_a*I_b-I_ab^2)))
+  }
+  out
 }
 
 
