@@ -24,6 +24,21 @@ global <- list()
 
 # Define UI for application that draws a histogram
 ui <- fluidPage(
+        tags$head(
+          tags$style(HTML("
+            .footer {
+              position: fixed;
+              left: 0;
+              bottom: 0;
+              width: 100%;
+              background-color: #f8f9fa;
+              color: black;
+              text-align: center;
+              padding: 10px;
+              border-top: 1px solid #e7e7e7;
+            }
+          "))
+        ),
     # Application title
     titlePanel("Bayesain power, assurance, and VoI calculator (CONFIDENTIAL - please do not share the link)"),
     tabsetPanel(id="input_tabset",
@@ -237,7 +252,8 @@ ui <- fluidPage(
                uiOutput("report1")
       )
     ),
-    HTML("<DIV style='display: flex;	 align-items: flex-end;  align-text: center'>App version 2025.01.28. For questions and bug reports contact msafavi@mail.ubc.ca</DIV>")
+    # Footer
+    tags$div(class = "footer", "App version 2025.01.28. For questions and bug reports contact msafavi@mail.ubc.ca")
 )
 
 
