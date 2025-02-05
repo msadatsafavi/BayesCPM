@@ -1,14 +1,3 @@
-#' @import fastLogisticRegressionWrap
-#' @import mcmapper
-#' @import pROC
-#' @import mc2d
-#' @import logitnorm
-#' @import cobs
-#' @import quantreg
-
-#' @importFrom stats binomial coef cor dbeta glm integrate optim pbeta pnorm predict qnorm quantile rbeta rbinom rnorm t.test uniroot
-
-
 
 logit <- function(x) {log(x/(1-x))}
 

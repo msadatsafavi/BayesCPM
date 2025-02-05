@@ -12,6 +12,7 @@ library(shinyjs)
 library(mcmapper)
 library(bayescpm)
 library(knitr)
+library(reshape2)
 
 
 source("include.R")
