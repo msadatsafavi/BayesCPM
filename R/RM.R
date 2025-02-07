@@ -28,8 +28,7 @@ find_n_RM <- function(sample, target_rules, target_metrics, target_values, N0=10
   X <- Y <- matrix(NA, nrow = n_sim, ncol=n)
   colnames(X) <- names(working_Ns) 
   colnames(Y) <- names(working_Ns) 
-  memories <- rep(-1,n) #Only relevant for assurance but who cares!
-  
+
   for(i in 1:n_sim)
   {
     y <- bayescpm:::calc_ciw_sample(round(working_Ns,0), sample[i,])

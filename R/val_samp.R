@@ -135,7 +135,6 @@ bpm_valsamp <- function(evidence,
   if(!is.na(match("eciw", target_rules)) | !is.na(match("qciw", target_rules)))
   {
     indices <- which(target_rules=="eciw" | target_rules=="qciw")
-    targets <- unique(target_metrics[indices])
     res <- find_n_RM(sample, target_rules[indices], target_metrics[indices], target_values[indices], base_parms=base)
     out$N <- c(out$N, res$N)
     out$trace <- res$trace
@@ -144,8 +143,9 @@ bpm_valsamp <- function(evidence,
   
   
   # Step 6: Calculate se and sp
-  b_voi <- !is.na(match("assurance", target_rules)) | !is.na(match("voi", target_rules))
-  if(b_voi)
+  b_voi <-  !is.na(match("voi", target_rules)) & !isTRUE(targets$voi.nb)
+  b_assurance <- !is.na(match("assurance", target_rules))  & !isTRUE(targets$assurance.nb)
+  if(b_voi | b_assurance)
   {
     if(is.null(threshold)) stop("NB-related stuff was requested but threshold is not specified") #Todo: move earlier to avoid this late error
     f_progress("Computing se/sp...")
@@ -162,19 +162,29 @@ bpm_valsamp <- function(evidence,
       sample[i,c('se','sp')] <- se_sp
     }
   
-    f_progress("VoI and NB assuraance...")
+    f_progress("VoI / NB assuraance...")
     
     #require(evsiexval)
     #res <- evsiexval::EVSI_gf(sample[,c('prev','se','sp')], future_sample_sizes=N,  ignore_prior=TRUE, z=threshold)
     
-    f <- function(x) {
-      n <- round(x)
-      tnb1 <- sample$prev*sample$se - (1-sample$prev)*(1-sample$sp)*threshold/(1-threshold)
-      tnb2 <- sample$prev - (1-sample$prev)*threshold/(1-threshold)
-      tnbs <- cbind(0,tnb1,tnb2)
-      maxnbs <- apply(tnbs, 1, max)
-      maxenb <- max(colMeans(tnbs))
-      assurance0 <- mean(apply(tnbs, 1, which.max)==which.max(colMeans(tnbs)))
+    if(b_voi)
+    {
+      target <- targets$voi.nb; 
+    }else
+    {
+      target <- targets$assurance.nb; 
+    }
+    
+    tnb1 <- sample$prev*sample$se - (1-sample$prev)*(1-sample$sp)*threshold/(1-threshold)
+    tnb2 <- sample$prev - (1-sample$prev)*threshold/(1-threshold)
+    tnbs <- cbind(0,tnb1,tnb2)
+    maxnbs <- apply(tnbs, 1, max)
+    maxenb <- max(colMeans(tnbs))
+    assurance0 <- mean(apply(tnbs, 1, which.max)==which.max(colMeans(tnbs)))
+    evpi <- mean(maxnbs)-maxenb
+    
+    f <- function(x, b_assurance=FALSE) {
+      n <- c(round(x))
       
       nd <- rbinom(rep(n,n_sim), n, sample$prev)
       ntp <- rbinom(rep(n,n_sim), nd, sample$se)
@@ -188,8 +198,15 @@ bpm_valsamp <- function(evidence,
       evsi <- mean(winnertnbs)-maxenb
       assurance <- mean(winnertnbs==maxnbs)
       
-      (assurance-0.9)^2
+      if(b_voi)
+      {
+        return((evsi/evpi-target)^2);
+      }else
+      {
+        return((assurance-target)^2);
+      }
     }
+    
     require(OOR)
     res <- StoSOO(c(1000), f, lower=100, upper=10^5, nb_iter=1000)
     
