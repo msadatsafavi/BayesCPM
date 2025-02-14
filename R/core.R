@@ -154,7 +154,7 @@ calc_cstat <- function(type, parms, m=NULL) #For now we assume we know m
 
 
 #'@export
-infer_cal_int_from_mean <- function(dist_type, dist_parms, cal_mean, cal_slp, prev=NULL)
+infer_cal_int_from_mean <- function(dist_type, dist_parms, cal_mean, cal_slp, prev=NULL) #TODO: prev
 {
   if(dist_type=="logitnorm")
   {
@@ -183,6 +183,42 @@ infer_cal_int_from_mean <- function(dist_type, dist_parms, cal_mean, cal_slp, pr
     res <- optim(0, fn=function(x) {((prev-f(x))-cal_mean)^2}, lower=-4, upper=4, method="Brent")
   }
 
+  unname(res$par)
+}
+
+
+
+
+#'@export
+infer_cal_int_from_oe <- function(dist_type, dist_parms, cal_oe, cal_slp, prev=NULL) #TODO: prev
+{
+  if(dist_type=="logitnorm")
+  {
+    f <- function(intercept)
+    {
+      integrate(function(x, intercept, slope){expit((logit(x)-intercept)/cal_slp)*mcmapper::dlogitnorm(x,dist_parms[1],dist_parms[2])}, 0, 1,intercept=intercept, slope=cal_slp)$value
+    }
+    res <- optim(0, fn=function(x) {((prev/f(x))-cal_oe)^2}, lower=-2, upper=2, method="Brent")
+  }
+  
+  if(dist_type=="beta")
+  {
+    f <- function(intercept)
+    {
+      integrate(function(x, intercept, slope){expit((logit(x)-intercept)/cal_slp)*dbeta(x,dist_parms[1],dist_parms[2])}, 0, 1,intercept=intercept, slope=cal_slp)$value
+    }
+    res <- optim(0, fn=function(x) {((prev/f(x))-cal_oe)^2}, lower=-2, upper=2, method="Brent")
+  }
+  
+  if(dist_type=="probitnorm")
+  {
+    f <- function(intercept)
+    {
+      integrate(function(x, intercept, slope){expit((logit(x)-intercept)/cal_slp)*mcmapper::dprobitnorm(x,dist_parms[1],dist_parms[2])}, 0, 1,intercept=intercept, slope=cal_slp)$value
+    }
+    res <- optim(0, fn=function(x) {((prev/f(x))-cal_oe)^2}, lower=-4, upper=4, method="Brent")
+  }
+  
   unname(res$par)
 }
 
