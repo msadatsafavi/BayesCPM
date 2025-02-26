@@ -550,9 +550,6 @@ calc_ciw_sample <- function(N, parms)
     O <- sum(Y[1:n])
     se_cal_oe[i] <- sqrt((1-O/n)/O)
     se_cal_mean[i] <- t.test(Y[1:n]-pi[1:n])$stderr
-    # reg <- glm(Y[1:n]~logit_pi[1:n], family = binomial())
-    # se_cal_int[i] <- sqrt(vcov(reg)[1,1])
-    # se_cal_slp[i] <- sqrt(vcov(reg)[2,2])
     reg <- fast_logistic_regression(logit_pi[1:n,],Y[1:n],do_inference_on_var="all")
     se_cal_int[i] <- reg$se[1]
     se_cal_slp[i] <- reg$se[2]
@@ -796,3 +793,80 @@ process_evidence <- function(evidence)
 
 
 
+#' @export
+plot_cal_instability <- function(N, sample, method="loess", X=(1:99)/100)
+{
+  out <- matrix(NA, nrow=nrow(sample), ncol=length(X))
+  for(i in 1:nrow(sample))
+  {
+    p <- do.call(paste0("r",sample$dist_type[i]), list(N, sample$dist_parm1[i], sample$dist_parm2[i]))
+    Y <- rbinom(N, 1, p)
+    pi <- expit((logit(p)-sample$cal_int[i])/sample$cal_slp[i])
+    if(method=="loess")
+    {
+      fcl <- loess(Y~pi)
+      out[i,] <- predict(fcl, X)
+    }
+    if(method=="line")
+    {
+      reg <- glm(Y~logit(pi), family=binomial())
+      out[i,] <- predict(reg, newdata=data.frame(pi=X), type='response')
+    }
+  }
+  
+  ci <- apply(out, 2, quantile, c(0.025, 0.975), na.rm=TRUE)
+  ylim <- c(0,1) #c(min(out, na.rm=TRUE), max(out, na.rm=TRUE)) 
+  plot(X, out[1,], ylim=ylim, xlab="Simulated predicted risks", ylab="Simulated observede risks", type='l', col='grey')
+  for(i in 2:nrow(out))
+  {
+    lines(X, out[i,], col='grey')
+  }
+  #lines(X, ci[1,])
+  #lines(X, ci[2,])
+  lines(c(0,1),c(0,1))
+}
+
+
+
+
+
+#' @export
+plot_cal_distance <- function(N, sample, method="loess", X=(1:99)/100)
+{
+  out <- matrix(NA, nrow=nrow(sample), ncol=length(X))
+  
+  for(i in 1:nrow(sample))
+  {
+    p <- do.call(paste0("r",sample$dist_type[i]), list(N, sample$dist_parm1[i], sample$dist_parm2[i]))
+    Y <- rbinom(N, 1, p)
+    pi <- expit((logit(p)-sample$cal_int[i])/sample$cal_slp[i])
+    
+    if(method=="loess")
+    {
+      fcl <- loess(Y~pi)
+      out[i,] <- predict(fcl, X)-expit(logit(X)*sample$cal_slp[i]+sample$cal_int[i])
+    }
+    if(method=="line")
+    {
+      reg <- glm(Y~logit(pi), family=binomial())
+      out[i,] <- predict(reg, newdata=X, type='response')-expit(logit(X)*sample$cal_slp[i]+sample$cal_int[i])
+    }
+  }
+  
+  #ci <- apply(out, 2, quantile, c(0.025, 0.975), na.rm=TRUE)
+  ylim <- c(-1,1) #c(min(out, na.rm=TRUE), max(out, na.rm=TRUE)) 
+  for(i in 1:nrow(out))
+  {
+    if(i==1)
+    {
+      plot(X, out[i,], ylim=ylim, xlab="Simulated predicted risks", ylab="Simulated calibration error", type='l', col='grey')
+    }
+    else
+    {
+      lines(X, out[i,], col='grey')
+    }
+  }
+  #lines(X, ci[1,])
+  #lines(X, ci[2,])
+  lines(c(0,1),c(0,0))
+}
