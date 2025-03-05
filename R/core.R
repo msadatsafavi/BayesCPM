@@ -849,11 +849,11 @@ plot_cal_distance <- function(N, sample, method="loess", X=(1:99)/100)
     if(method=="line")
     {
       reg <- glm(Y~logit(pi), family=binomial())
-      out[i,] <- predict(reg, newdata=X, type='response')-expit(logit(X)*sample$cal_slp[i]+sample$cal_int[i])
+      out[i,] <- predict(reg, newdata=data.frame(pi=X), type="response")-expit(logit(X)*sample$cal_slp[i]+sample$cal_int[i])
     }
   }
   
-  #ci <- apply(out, 2, quantile, c(0.025, 0.975), na.rm=TRUE)
+  ci <- apply(out, 2, quantile, c(0.025, 0.975), na.rm=TRUE)
   ylim <- c(-1,1) #c(min(out, na.rm=TRUE), max(out, na.rm=TRUE)) 
   for(i in 1:nrow(out))
   {
@@ -866,7 +866,7 @@ plot_cal_distance <- function(N, sample, method="loess", X=(1:99)/100)
       lines(X, out[i,], col='grey')
     }
   }
-  #lines(X, ci[1,])
-  #lines(X, ci[2,])
+  lines(X, ci[1,], lty=3)
+  lines(X, ci[2,], lty=3)
   lines(c(0,1),c(0,0))
 }
