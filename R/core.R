@@ -24,7 +24,10 @@ moments <- function(type, parms) {
   }
   if(type=="probitnorm")
   {
-    #TODO
+    mu <- parms[1]; sigma <- parms[2]
+    m <- pnorm(mu/sqrt(1+sigma^2))
+    ex2 <- integrate(function(x) {x^2*mcmapper::dprobitnorm(x,mu,sigma)}, 0,1)$value
+    return(c(m=m, v=ex2-m^2))
   }
 }
 
@@ -104,7 +107,6 @@ inv_mean_quantile <- function(type, m, q, p)
     res <- tryCatch(
       {logitnorm::twCoefLogitnormE(mean=m, quant=q, perc=p)},
       error=(function(cond) {logitnorm::twCoefLogitnormE(mean=m, quant=q, perc=p,theta0=logitnorm::twCoefLogitnorm(m,q,p))}))
-    
     out <- c(mu=res[1], sigma=res[2])
   }
   if(type=="beta") 
@@ -114,7 +116,7 @@ inv_mean_quantile <- function(type, m, q, p)
   }
   if(type=="probitnorm") #TODO
   {
-    
+    #TODO
   }
   if(type=="norm")
   {
